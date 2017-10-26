@@ -2,17 +2,27 @@ const http = require('http');
 const fs = require('fs');
 const sharp = require('sharp');
 
+const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'tif', 'tiff'];
+
 const hour = 60 * 60 * 1000;
 const day = 24 * hour;
 const choosers = {
   first: (choices) => choices[0],
-  'static': (choices) => choices[0],
   last: (choices) => choices[choices.length - 1],
   latest: (choices) => choices[choices.length - 1],
   random: (choices) => choices[Math.floor(Math.random() * choices.length)],
   sequence: (choices) => choices[Math.floor(Date.now() / hour) % choices.length],
   daily: (choices) => choices[Math.floor(Date.now() / day) % choices.length]
 };
+
+const promisfy = (fn) => {
+  return (...input) => new Promise((res, rej) => {
+    fn(...input, (err, data) => (err) ? rej(err) : res(data));
+  });
+};
+
+const readdir = promisfy(fs.readdir);
+const readFile = promisfy(fs.readFile);
 
 const readOpts = (url) => {
   return new Promise((res) => {
@@ -39,33 +49,18 @@ const readOpts = (url) => {
   });
 };
 
-const readDir = (directory) => {
-  return new Promise((res, rej) => {
-    fs.readdir(directory, (err, data) => {
-      if (err) {
-        return rej(err);
-      }
-      const exts = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'tif', 'tiff'];
-      data.filter((file) => {
-        let fileExt = file.split('.');
-        fileExt = fileExt[fileExt.length - 1].toLowerCase();
-        return exts.some((ext) => ext === fileExt);
-      });
-      data.sort();
-      res(data);
-    });
+const justImages = (entries) => {
+  const images = entries.filter((file) => {
+    let ext = file.split('.');
+    ext = ext[ext.length - 1].toLowerCase();
+    return validExtensions.some((validExt) => validExt === ext);
   });
+  images.sort();
+  return images;
 };
 
-const readFile = (filename) => {
-  return new Promise((res, rej) => {
-    fs.readFile(filename, (err, data) => {
-      if (err) {
-        return rej(err);
-      }
-      res(data);
-    });
-  });
+const chooseFile = (files, opts) => {
+  return `${opts.source}/${opts.chooser(files)}`;
 };
 
 const resize = (data, opts) => sharp(data)
@@ -84,8 +79,9 @@ const requestHandler = (request, response) => {
     responsePromise =
       readOpts(request.url)
       .then((theOpts) => opts = theOpts)
-      .then(() => readDir(opts.source))
-      .then((files) => `${opts.source}/${opts.chooser(files)}`)
+      .then(() => readdir(opts.source))
+      .then(justImages)
+      .then((files) => chooseFile(files, opts))
       .then(readFile);
   }
   responsePromise.then((data) => resize(data, opts))
