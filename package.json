@@ -1,0 +1,15 @@
+{
+  "name": "sockavatars",
+  "version": "1.0.0",
+  "description": "Avatar scripts for sockdrawer",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "author": "accalia <accalia@elementia.me>",
+  "license": "MIT",
+  "dependencies": {
+    "sharp": "^0.18.4"
+  }
+}
