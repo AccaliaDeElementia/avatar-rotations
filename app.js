@@ -2,8 +2,16 @@ const http = require('http');
 const fs = require('fs');
 const sharp = require('sharp');
 
-const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'tif', 'tiff'];
+const promisfy = (fn) => {
+  return (input) => new Promise((res, rej) => {
+    fn(input, (err, data) => (err) ? rej(err) : res(data));
+  });
+};
 
+const readdir = promisfy(fs.readdir);
+const readFile = promisfy(fs.readFile);
+
+const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'tif', 'tiff'];
 const hour = 60 * 60 * 1000;
 const day = 24 * hour;
 const choosers = {
@@ -15,33 +23,19 @@ const choosers = {
   daily: (choices) => choices[Math.floor(Date.now() / day) % choices.length]
 };
 
-const promisfy = (fn) => {
-  return (...input) => new Promise((res, rej) => {
-    fn(...input, (err, data) => (err) ? rej(err) : res(data));
-  });
-};
-
-const readdir = promisfy(fs.readdir);
-const readFile = promisfy(fs.readFile);
-
 const readOpts = (url) => {
   return new Promise((res) => {
     const parts = url.split('/');
-    let ext = 'png';
     if (parts[parts.length - 1].indexOf('.') !== -1) {
       const term = parts[parts.length - 1].split('.');
-      ext = term.pop();
+      term.pop();
       parts[parts.length - 1] = term.join('.');
     }
     const opts = {
       source: `${serverOpts.baseDir}/${parts[1].replace(/:/g, '/')}`,
-      chooser: choosers[parts[2]],
-      size: Number.parseInt(parts[3], 10),
-      extension: ext
+      chooser: choosers[parts[2]] || choosers.random,
+      size: Number.parseInt(parts[3], 10)
     };
-    if (!opts.chooser) {
-      opts.chooser = choosers.random;
-    }
     if (!(opts.size >= 1 && opts.size <= 1000)) {
       opts.size = undefined;
     }
@@ -59,9 +53,7 @@ const justImages = (entries) => {
   return images;
 };
 
-const chooseFile = (files, opts) => {
-  return `${opts.source}/${opts.chooser(files)}`;
-};
+const chooseFile = (files, opts) => `${opts.source}/${opts.chooser(files)}`;
 
 const resize = (data, opts) => sharp(data)
   .rotate()
@@ -76,8 +68,7 @@ const requestHandler = (request, response) => {
     responsePromise = readFile('favicon.ico');
   }
   else {
-    responsePromise =
-      readOpts(request.url)
+    responsePromise = readOpts(request.url)
       .then((theOpts) => opts = theOpts)
       .then(() => readdir(opts.source))
       .then(justImages)
@@ -94,31 +85,11 @@ const requestHandler = (request, response) => {
     });
 };
 
-
 const serverOpts = {
-  port: process.env.PORT || 3000,
-  ip: process.env.IP || '0.0.0.0',
-  baseDir: process.env.AVATARS_BASEDIR || '.'
+  port: process.env.PORT || 8888,
+  ip: process.env.IP || '127.0.0.1',
+  baseDir: process.env.AVATARS_BASEDIR || 'Images'
 };
-
-const mergeConfig = (filename, onError) => {
-  try {
-    const params = JSON.parse(fs.readFileSync(filename));
-    Object.keys(serverOpts).forEach((key) => {
-      serverOpts[key] = params[key] !== undefined ? params[key] : serverOpts[key];
-    });
-  }
-  catch (e) {
-    onError(e);
-  }
-};
-
-if (process.argv[2]) {
-  mergeConfig(process.argv[2], () => {
-    console.error('Failed to read configuration data.');
-    process.exit(1);
-  });
-}
 
 var server = http.createServer(requestHandler);
 server.listen(serverOpts.port, serverOpts.ip, function() {
