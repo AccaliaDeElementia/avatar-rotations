@@ -4,12 +4,16 @@
   "description": "Avatar scripts for sockdrawer",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "standard",
     "start": "node app.js"
   },
   "author": "accalia <accalia@elementia.me>",
   "license": "MIT",
   "dependencies": {
+    "express": "^4.16.2",
     "sharp": "^0.18.4"
+  },
+  "devDependencies": {
+    "standard": "^10.0.3"
   }
 }
