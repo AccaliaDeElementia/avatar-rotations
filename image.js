@@ -1,12 +1,22 @@
+'use strict'
+
 const { readFile, readdir } = require('fs')
 
 const sharp = require('sharp')
 
 const validExtensions = exports.validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'tif', 'tiff']
 
+exports.stripValidExtensions = (path) => {
+  const parts = path.split('.')
+  if (validExtensions.some((ext) => ext === parts[parts.length - 1])) {
+    parts.pop()
+  }
+  return parts.join('.')
+}
+
 const hasValidExtension = ext => {
   ext = (ext || '').toLowerCase()
-  return validExtensions.some(vext => vext === ext)
+  return validExtensions.some(validExt => validExt === ext)
 }
 
 exports.getImages = folder => {
