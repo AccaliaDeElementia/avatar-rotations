@@ -32,7 +32,7 @@ const sendResponse = context => {
 
 module.exports = serverOpts => {
   const getSizeAndPath = context => Promise.resolve(context)
-    .then(setContext('size', (context) => Number.parseInt(context.req.query.size), (value) => value >= 10 && value <= 1000))
+    .then(setContext('size', (context) => Number.parseInt(context.req.params.size || context.req.query.size, 10), (value) => value >= 10 && value <= 1000))
     .then(setContext('path', (context) => context.req.params['0']))
     .then(setContext('directory', (context) => stripValidExtensions(`${serverOpts.baseDir}/${context.path}`)))
 
@@ -95,9 +95,16 @@ module.exports = serverOpts => {
     })
 
   const app = express()
-  app.get('/random/*', avatarWithChooser((choices) => choices[Math.floor(Math.random() * choices.length)]))
-  app.get('/sequence/*', avatarWithChooser((choices) => choices[Math.floor(Date.now() / hour) % choices.length]))
-  app.get('/daily/*', avatarWithChooser((choices) => choices[Math.floor(Date.now() / day) % choices.length]))
+  const randomChooser = avatarWithChooser((choices) => choices[Math.floor(Math.random() * choices.length)])
+  const sequenceChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / hour) % choices.length])
+  const dailyChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / day) % choices.length])
+  app.get('/random/size-:size/*', randomChooser)
+  app.get('/random/*', randomChooser)
+  app.get('/sequence/size-:size/*', sequenceChooser)
+  app.get('/sequence/*', sequenceChooser)
+  app.get('/daily/size-:size/*', dailyChooser)
+  app.get('/daily/*', dailyChooser)
+  app.get('/static/size-:size/*', staticAvatar)
   app.get('/static/*', staticAvatar)
   app.get('/list/*', listAvatars)
   return app

@@ -22,10 +22,11 @@ app.get(/^\/(favicon[.]ico)?$/, (req, res) => sendFile('favicon.ico', undefined,
 app.use('/avatars', avatars)
 
 const redirector = (req, res) => {
-  let newPath = `/avatars/${req.params.chooser || 'random'}/${req.params.folder.replace(/:/g, '/')}.png`
+  let newPath = `/avatars/${req.params.chooser || 'random'}/`
   if (req.params.width) {
-    newPath += `?size=${req.params.width}`
+    newPath += `size-${req.params.width}/`
   }
+  newPath += `${req.params.folder.replace(/:/g, '/')}.png`
   res.redirect(301, newPath)
 }
 app.get('/:folder/:chooser?/:width?.png', redirector)
