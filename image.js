@@ -34,6 +34,6 @@ exports.sendFile = (filename, maxWidth, res) => {
   return new Promise((resolve, reject) => {
     readFile(filename, (err, data) => err ? reject(err) : resolve(data))
   })
-  .then(data => sharp(data).rotate().resize(maxWidth).png().toBuffer())
+  .then(data => sharp(data).rotate().resize(maxWidth,maxWidth).max().png().toBuffer())
   .then(data => res.set('Content-Type', 'image/png').send(data))
 }
