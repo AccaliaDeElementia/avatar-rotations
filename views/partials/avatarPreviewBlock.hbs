@@ -1,0 +1,41 @@
+<div class="container avatarLinks">
+    <div class="row">
+        {{#.}}
+            <div class="col preview preview-{{name}} border" data-prefix="{{linkPrefix}}"
+                 data-suffix="{{linkSuffix}}" data-name="{{name}}" style="overflow: hidden;">
+                <a href="{{linkPrefix}}/{{linkSuffix}}">
+                    <div>{{name}}</div>
+                    <div class="d-inline-block preview-image"><img src="{{link}}"/></div>
+                    <input type="hidden" value="{{link}}"/>
+                </a>
+                <div>
+                    <div class="d-inline-block btn-group" role="group">
+                        <button type="button" class="btn btn-primary action-copy-link">Copy</button>
+                        <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown"
+                                aria-haspopup="true" aria-expanded="false"></button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item action-copy-link" href="#">Copy Current Size</a>
+                            <a class="dropdown-item action-copy-original-link" href="#">Copy Original Size</a>
+                            <a class="dropdown-item action-copy-markdown" href="#">Copy Markdown</a>
+                            <a class="dropdown-item action-copy-markdown-link" href="#">Copy Markdown w/
+                                Link</a>
+                            <a class="dropdown-item action-copy-bbcode" href="#">Copy BBcode</a>
+                            <a class="dropdown-item action-copy-bbcode-link" href="#">Copy BBCode w/ Link</a>
+                            <a class="dropdown-item action-copy-html" href="#">Copy HTML</a>
+                            <a class="dropdown-item action-copy-html-link" href="#">Copy HTML w/ Link</a>
+                        </div>
+                    </div>
+                    <div class="d-inline-block btn-group" role="group">
+                        <button type="button" class="btn btn-primary action-view-original">View</button>
+                        <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown"
+                                aria-haspopup="true" aria-expanded="false"></button>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item action-view" href="#">View Current Size</a>
+                            <a class="dropdown-item action-view-original" href="#">View Original Size</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {{/.}}
+    </div>
+</div>

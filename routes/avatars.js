@@ -1,19 +1,10 @@
 'use strict'
 
 const express = require('express')
-
-const {getImages, sendFile, stripValidExtensions} = require('./image')
-const {sendTemplate} = require('./templates')
-
+const {getImages, sendFile, stripValidExtensions} = require('../utils/image')
 const hour = 60 * 60 * 1000
 const day = 24 * hour
-const choosers = {
-  first: (choices) => choices[0],
-  latest: (choices) => choices[choices.length - 1],
-  random: (choices) => choices[Math.floor(Math.random() * choices.length)],
-  sequence: (choices) => choices[Math.floor(Date.now() / hour) % choices.length],
-  daily: (choices) => choices[Math.floor(Date.now() / day) % choices.length]
-}
+
 const setContext = (name, valueSelector, filter = () => true) => context => Promise.resolve(valueSelector(context))
   .then((value) => {
     if (filter(value)) {
@@ -65,6 +56,48 @@ module.exports = serverOpts => {
       res.sendStatus(e.statusCode || 404)
     })
 
+  const makePagination = (currentPage, totalPages) => {
+    const pageStart = Math.max(currentPage - 5, 1)
+    const pageEnd = Math.min(currentPage + 5, totalPages)
+    const pages = []
+    if (pageStart > 1) {
+      pages.push({
+        title: '1',
+        page: 1,
+        css: (currentPage === 1) ? 'active' : ''
+      })
+    }
+    if (pageStart > 2) {
+      pages.push({
+        title: '...',
+        page: 0,
+        css: 'disabled'
+      })
+    }
+    for (let i = pageStart; i <= pageEnd; i++) {
+      pages.push({
+        title: i,
+        page: i,
+        css: (currentPage === i) ? 'active' : ''
+      })
+    }
+    if (pageEnd < totalPages - 1) {
+      pages.push({
+        title: '...',
+        page: 0,
+        css: 'disabled'
+      })
+    }
+    if (pageEnd < totalPages) {
+      pages.push({
+        title: totalPages,
+        page: totalPages,
+        css: (currentPage === totalPages) ? 'active' : ''
+      })
+    }
+    return pages
+  }
+
   const listAvatars = (req, res) => Promise.resolve({req, res, app})
     .then(getSizeAndPath)
     .then(setContext('webDirectory', (context) => stripValidExtensions(context.path)))
@@ -72,29 +105,29 @@ module.exports = serverOpts => {
     .then(setContext('template', (context) => 'templates/list.hbs'))
     .then(setContext('page', (context) => Number.parseInt(context.req.query.page, 10), (value) => value > 0))
     .then((context) => {
-      const makelink = (prefix, path) => `${context.app.path()}/${prefix}/${context.size ? `size-${context.size}/` : ''}${path}`
+      const makeLink = (prefix, path) => `${context.app.path()}/${prefix}/${context.size ? `size-${context.size}/` : ''}${path}`
       const pages = Math.ceil(context.images.length / serverOpts.pageSize)
       const page = (context.page > pages) ? pages : context.page || 1
       const pageStart = (page - 1) * serverOpts.pageSize
       const pageEnd = page * serverOpts.pageSize
       context.data = {
         size: context.size,
-        pages, page,
+        pagination: makePagination(page, pages),
         directory: {
           name: context.webDirectory,
           links: [{
             name: 'random',
-            link: makelink('random', context.webDirectory),
+            link: makeLink('random', context.webDirectory),
             linkPrefix: `${context.app.path()}/random`,
             linkSuffix: context.webDirectory
           }, {
             name: 'sequence',
-            link: makelink('sequence', context.webDirectory),
+            link: makeLink('sequence', context.webDirectory),
             linkPrefix: `${context.app.path()}/sequence`,
             linkSuffix: context.webDirectory
           }, {
             name: 'daily',
-            link: makelink('daily', context.webDirectory),
+            link: makeLink('daily', context.webDirectory),
             linkPrefix: `${context.app.path()}/daily`,
             linkSuffix: context.webDirectory
           }],
@@ -103,7 +136,7 @@ module.exports = serverOpts => {
         images: context.images.slice(pageStart, pageEnd).map(img => {
           return {
             name: img,
-            link: makelink('static', `${context.webDirectory}/${img}`),
+            link: makeLink('static', `${context.webDirectory}/${img}`),
             linkPrefix: `${context.app.path()}/static`,
             linkSuffix: `${context.webDirectory}/${img}`
           }
@@ -115,7 +148,7 @@ module.exports = serverOpts => {
       const fmt = req.accepts('html')
       switch (fmt) {
         case 'html':
-          return sendTemplate(context)
+          return res.render('avatars/list', context.data)
         default:
           return res.json(context.data)
       }

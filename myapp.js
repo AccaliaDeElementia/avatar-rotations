@@ -11,9 +11,9 @@ const serverOpts = {
 const express = require('express')
 const app = express()
 
-const avatars = require('./avatars')(serverOpts)
+const avatars = require('./routes/avatars')(serverOpts)
 
-const {sendFile} = require('./image')
+const {sendFile} = require('./utils/image')
 
 app.get(/^\/(favicon[.]ico)?$/, (req, res) => sendFile('favicon.ico', undefined, res)
   .catch((err) => {

@@ -31,9 +31,10 @@ exports.getImages = folder => {
 }
 
 exports.sendFile = (filename, maxWidth, res) => {
+  const ext = filename.split('.').pop().toLowerCase()
   return new Promise((resolve, reject) => {
     readFile(filename, (err, data) => err ? reject(err) : resolve(data))
   })
-    .then(data => sharp(data).rotate().resize(maxWidth, maxWidth).max().png().toBuffer())
-    .then(data => res.set('Content-Type', 'image/png').send(data))
+    .then(data => (ext === 'gif') ? data : sharp(data).rotate().resize(maxWidth, maxWidth).max().toBuffer())
+    .then(data => res.set('Content-Type', `image/${ext}`).send(data))
 }
