@@ -1,7 +1,9 @@
 'use strict'
 
 const express = require('express')
-const {getImages, sendFile, stripValidExtensions} = require('./image')
+
+const { getImages, sendFile, stripValidExtensions } = require('./image')
+const { sendTemplate } = require('./templates')
 
 const hour = 60 * 60 * 1000
 const day = 24 * hour
@@ -37,7 +39,7 @@ module.exports = serverOpts => {
     .then(setContext('directory', (context) => stripValidExtensions(`${serverOpts.baseDir}/${context.path}`)))
 
   const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res) => {
-    Promise.resolve({req, res, app})
+    Promise.resolve({ req, res, app })
       .then(getSizeAndPath)
       .then(setContext('directory', (context) => stripValidExtensions(`${serverOpts.baseDir}/${context.path}`)))
       .then(setContext('images', (context) => getImages(context.directory)))
@@ -52,7 +54,7 @@ module.exports = serverOpts => {
         res.sendStatus(e.statusCode || 404)
       })
   }
-  const staticAvatar = (req, res) => Promise.resolve({req, res, app})
+  const staticAvatar = (req, res) => Promise.resolve({ req, res, app })
     .then(getSizeAndPath)
     .then(setContext('webPath', context => context.path))
     .then(setContext('filePath', (context) => `${serverOpts.baseDir}/${context.path}`))
@@ -63,35 +65,59 @@ module.exports = serverOpts => {
       res.sendStatus(e.statusCode || 404)
     })
 
-  const listAvatars = (req, res) => Promise.resolve({req, res, app})
+  const listAvatars = (req, res) => Promise.resolve({ req, res, app })
     .then(getSizeAndPath)
-    .then(setContext('webDirectory', (context) => stripValidExtensions(context.directory)))
+    .then(setContext('webDirectory', (context) => stripValidExtensions(context.path)))
     .then(setContext('images', (context) => getImages(context.directory)))
+    .then(setContext('template', (context) => 'templates/list.hbs'))
     .then((context) => {
+      const makelink = (prefix, path) => `${context.app.path()}/${prefix}/${context.size?`size-${context.size}/`:''}${path}`
       context.data = {
+        size: context.size,
         directory: {
-          links: {
-            random: `${context.app.path()}/random/${context.webDirectory}`,
-            sequence: `${context.app.path()}/sequence/${context.webDirectory}`,
-            daily: `${context.app.path()}/daily/${context.webDirectory}`
-          }
+          name: context.webDirectory,
+          links: [{
+            name: 'random',
+            link: makelink('random', context.webDirectory),
+            linkPrefix: `${context.app.path()}/random`,
+            linkSuffix: context.webDirectory
+          }, {
+            name: 'sequence',
+            link: makelink('sequence', context.webDirectory),
+            linkPrefix: `${context.app.path()}/sequence`,
+            linkSuffix: context.webDirectory
+          }, {
+            name: 'daily',
+            link: makelink('daily', context.webDirectory),
+            linkPrefix: `${context.app.path()}/daily`,
+            linkSuffix: context.webDirectory
+          }],
+          linkPrefix: context.app.path()
         },
         images: context.images.map(img => {
           return {
             name: img,
-            link: `${context.app.path()}/static/${context.webDirectory}/${img}`
+            link: makelink('static', `${context.webDirectory}/${img}`),
+            linkPrefix: `${context.app.path()}/static`,
+            linkSuffix: `${context.webDirectory}/${img}`
           }
         })
       }
-
       return context
     })
     .then(context => {
       res.format({
+        'text/html': () => {
+          sendTemplate(context)
+        },
         default: () => {
           res.json(context.data)
         }
       })
+    })
+    .catch((e) => {
+      console.error(e)
+      res.sendStatus(e.statusCode || 404)
     })
 
   const app = express()
@@ -106,6 +132,7 @@ module.exports = serverOpts => {
   app.get('/daily/*', dailyChooser)
   app.get('/static/size-:size/*', staticAvatar)
   app.get('/static/*', staticAvatar)
+  app.get('/list/size-:size/*', listAvatars)
   app.get('/list/*', listAvatars)
   return app
 }

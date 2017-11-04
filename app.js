@@ -3,7 +3,8 @@
 const serverOpts = {
   port: process.env.PORT || 8888,
   ip: process.env.IP || '127.0.0.1',
-  baseDir: process.env.AVATARS_BASEDIR || 'Images'
+  baseDir: process.env.AVATARS_BASEDIR || 'Images',
+  debug: process.env.AVATARS_DEBUT || false
 }
 
 const express = require('express')
@@ -31,5 +32,14 @@ const redirector = (req, res) => {
 }
 app.get('/:folder/:chooser?/:width?.png', redirector)
 app.get('/:folder/:chooser?/:width?', redirector)
+
+app.use((err, req, res, next) => {
+  if (serverOpts.debug) {
+    console.log(err.stack)
+    return next(err)
+  }
+  res.sendStatus(500)
+  res.end()
+})
 
 app.listen(serverOpts.port)
