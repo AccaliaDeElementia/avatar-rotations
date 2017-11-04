@@ -2,8 +2,8 @@
 
 const express = require('express')
 
-const { getImages, sendFile, stripValidExtensions } = require('./image')
-const { sendTemplate } = require('./templates')
+const {getImages, sendFile, stripValidExtensions} = require('./image')
+const {sendTemplate} = require('./templates')
 
 const hour = 60 * 60 * 1000
 const day = 24 * hour
@@ -39,7 +39,7 @@ module.exports = serverOpts => {
     .then(setContext('directory', (context) => stripValidExtensions(`${serverOpts.baseDir}/${context.path}`)))
 
   const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res) => {
-    Promise.resolve({ req, res, app })
+    Promise.resolve({req, res, app})
       .then(getSizeAndPath)
       .then(setContext('directory', (context) => stripValidExtensions(`${serverOpts.baseDir}/${context.path}`)))
       .then(setContext('images', (context) => getImages(context.directory)))
@@ -54,7 +54,7 @@ module.exports = serverOpts => {
         res.sendStatus(e.statusCode || 404)
       })
   }
-  const staticAvatar = (req, res) => Promise.resolve({ req, res, app })
+  const staticAvatar = (req, res) => Promise.resolve({req, res, app})
     .then(getSizeAndPath)
     .then(setContext('webPath', context => context.path))
     .then(setContext('filePath', (context) => `${serverOpts.baseDir}/${context.path}`))
@@ -65,15 +65,21 @@ module.exports = serverOpts => {
       res.sendStatus(e.statusCode || 404)
     })
 
-  const listAvatars = (req, res) => Promise.resolve({ req, res, app })
+  const listAvatars = (req, res) => Promise.resolve({req, res, app})
     .then(getSizeAndPath)
     .then(setContext('webDirectory', (context) => stripValidExtensions(context.path)))
     .then(setContext('images', (context) => getImages(context.directory)))
     .then(setContext('template', (context) => 'templates/list.hbs'))
+    .then(setContext('page', (context) => Number.parseInt(context.req.query.page, 10), (value) => value > 0))
     .then((context) => {
-      const makelink = (prefix, path) => `${context.app.path()}/${prefix}/${context.size?`size-${context.size}/`:''}${path}`
+      const makelink = (prefix, path) => `${context.app.path()}/${prefix}/${context.size ? `size-${context.size}/` : ''}${path}`
+      const pages = Math.ceil(context.images.length / serverOpts.pageSize)
+      const page = (context.page > pages) ? pages : context.page || 1
+      const pageStart = (page - 1) * serverOpts.pageSize
+      const pageEnd = page * serverOpts.pageSize
       context.data = {
         size: context.size,
+        pages, page,
         directory: {
           name: context.webDirectory,
           links: [{
@@ -94,7 +100,7 @@ module.exports = serverOpts => {
           }],
           linkPrefix: context.app.path()
         },
-        images: context.images.map(img => {
+        images: context.images.slice(pageStart, pageEnd).map(img => {
           return {
             name: img,
             link: makelink('static', `${context.webDirectory}/${img}`),
@@ -106,14 +112,13 @@ module.exports = serverOpts => {
       return context
     })
     .then(context => {
-      res.format({
-        'text/html': () => {
-          sendTemplate(context)
-        },
-        default: () => {
-          res.json(context.data)
-        }
-      })
+      const fmt = req.accepts('html')
+      switch (fmt) {
+        case 'html':
+          return sendTemplate(context)
+        default:
+          return res.json(context.data)
+      }
     })
     .catch((e) => {
       console.error(e)
