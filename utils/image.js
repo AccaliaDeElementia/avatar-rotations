@@ -1,6 +1,6 @@
 'use strict'
 
-const { readFile, readdir } = require('fs')
+const {readFile, readdir} = require('fs')
 
 const sharp = require('sharp')
 
@@ -23,17 +23,18 @@ exports.getImages = folder => {
   return new Promise((resolve, reject) => {
     readdir(folder, (err, files) => err ? reject(err) : resolve(files))
   })
-  .then(files => files.filter(file => hasValidExtension(file.split('.').pop())))
-  .then(files => {
-    files.sort()
-    return files
-  })
+    .then(files => files.filter(file => hasValidExtension(file.split('.').pop())))
+    .then(files => {
+      files.sort()
+      return files
+    })
 }
 
 exports.sendFile = (filename, maxWidth, res) => {
+  const ext = filename.split('.').pop().toLowerCase()
   return new Promise((resolve, reject) => {
     readFile(filename, (err, data) => err ? reject(err) : resolve(data))
   })
-  .then(data => sharp(data).rotate().resize(maxWidth,maxWidth).max().png().toBuffer())
-  .then(data => res.set('Content-Type', 'image/png').send(data))
+    .then(data => (ext === 'gif') ? data : sharp(data).rotate().resize(maxWidth, maxWidth).max().toBuffer())
+    .then(data => res.set('Content-Type', `image/${ext}`).send(data))
 }
