@@ -39,6 +39,18 @@ app.use(express.static(path.join(__dirname, 'public')))
 app.use('/', index)
 app.use('/avatars', avatars)
 
+const redirector = (req, res) => {
+  let newPath = `/avatars/${req.params.chooser || 'random'}/`
+  if (req.params.width) {
+    newPath += `size-${req.params.width}/`
+  }
+  newPath += `${req.params.folder.replace(/:/g, '/')}.png`
+  res.redirect(301, newPath)
+}
+app.get('/:folder/:chooser?/:width?.png', redirector)
+app.get('/:folder/:chooser?/:width?', redirector)
+
+
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
   const err = new Error('Not Found')
