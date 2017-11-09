@@ -68,4 +68,4 @@ app.use((err, req, res, next) => {
   res.render('error')
 })
 
-app.listen(serverOpts.port)
+app.listen(serverOpts.port, serverOpts.ip)
