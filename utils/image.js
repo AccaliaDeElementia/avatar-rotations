@@ -3,6 +3,7 @@
 const {readFile, readdir} = require('fs')
 
 const sharp = require('sharp')
+const naturalSort = require('node-natural-sort')
 
 const validExtensions = exports.validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'tif', 'tiff']
 
@@ -25,7 +26,7 @@ exports.getImages = folder => {
   })
     .then(files => files.filter(file => hasValidExtension(file.split('.').pop())))
     .then(files => {
-      files.sort()
+      files.sort(naturalSort({caseSensitive: false}))
       return files
     })
 }
