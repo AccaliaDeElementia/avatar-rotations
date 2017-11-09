@@ -50,7 +50,6 @@ const redirector = (req, res) => {
 app.get('/:folder/:chooser?/:width?.png', redirector)
 app.get('/:folder/:chooser?/:width?', redirector)
 
-
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
   const err = new Error('Not Found')
