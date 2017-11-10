@@ -34,6 +34,19 @@ const handleError = response => err => {
 }
 
 module.exports = serverOpts => {
+  const standardizePath = context => Promise.resolve(context)
+    .then(context => {
+      const orig = context.app.path() + context.req.path
+      const stripped = stripValidExtensions(orig)
+      if (orig !== stripped) {
+        const redir = new Error('redirect!')
+        redir.destination = stripped
+        redir.statusCode = 301
+        throw redir
+      }
+      return context
+    })
+
   const getSizeAndPath = context => Promise.resolve(context)
     .then(setContext('rawSize', (context) => (context.req.params.size || context.req.query.size)))
     .then(setContext('size', (context) => Number.parseInt(context.rawSize, 10), (value) => value >= 10 && value <= 1000))
@@ -56,6 +69,7 @@ module.exports = serverOpts => {
 
   const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res) => {
     Promise.resolve({ req, res, app })
+      .then(standardizePath)
       .then(getSizeAndPath)
       .then(setContext('directory', (context) => stripValidExtensions(`${serverOpts.baseDir}/${context.path}`)))
       .then(setContext('images', (context) => getImages(context.directory)))
@@ -118,6 +132,7 @@ module.exports = serverOpts => {
   }
 
   const listAvatars = (req, res) => Promise.resolve({ req, res, app })
+    .then(standardizePath)
     .then(getSizeAndPath)
     .then(setContext('webDirectory', (context) => stripValidExtensions(context.path)))
     .then(setContext('images', (context) => getImages(context.directory)))
