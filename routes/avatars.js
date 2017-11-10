@@ -17,8 +17,10 @@ const sendResponse = context => {
   context.res.links({
     Permalink: `${context.app.path()}/static/${context.webPath}`
   })
-  const expires = new Date(Date.now() + context.maxage)
-  context.res.append('Cache-Control', `public max-age=${context.maxage}`)
+  const now = Date.now()
+  const maxage = context.maxage(now)
+  const expires = new Date(now + maxage)
+  context.res.append('Cache-Control', `public max-age=${maxage}`)
   context.res.append('Expires', expires.toUTCString())
   return sendFile(context.filePath, context.size, context.res)
 }
@@ -61,7 +63,7 @@ module.exports = serverOpts => {
       .then(setContext('file', context => context.chooser(context.images)))
       .then(setContext('webPath', context => `${context.path}/${context.file}`))
       .then(setContext('filePath', context => `${context.directory}/${context.file}`))
-      .then(setContext('maxage', maxAge))
+      .then(setContext('maxage', () => maxAge))
       .then(sendResponse)
       .catch(handleError(res))
   }
@@ -69,7 +71,7 @@ module.exports = serverOpts => {
     .then(getSizeAndPath)
     .then(setContext('webPath', context => context.path))
     .then(setContext('filePath', (context) => `${serverOpts.baseDir}/${context.path}`))
-    .then(setContext('maxage', () => day * 365))
+    .then(setContext('maxage', () => (now) => day * 365))
     .then(sendResponse)
     .catch(handleError(res))
 
@@ -173,9 +175,9 @@ module.exports = serverOpts => {
     .catch(handleError(res))
 
   const app = express()
-  const randomChooser = avatarWithChooser((choices) => choices[Math.floor(Math.random() * choices.length)])
-  const sequenceChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / hour) % choices.length])
-  const dailyChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / day) % choices.length])
+  const randomChooser = avatarWithChooser((choices) => choices[Math.floor(Math.random() * choices.length)], now => 0)
+  const sequenceChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / hour) % choices.length], now => hour - now % hour)
+  const dailyChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / day) % choices.length], now => day - now % day)
   app.get('/random/size-:size/*', randomChooser)
   app.get('/random/*', randomChooser)
   app.get('/sequence/size-:size/*', sequenceChooser)
