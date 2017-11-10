@@ -1,7 +1,7 @@
 'use strict'
 
 const express = require('express')
-const {getImages, sendFile, stripValidExtensions} = require('../utils/image')
+const { getImages, sendFile, stripValidExtensions } = require('../utils/image')
 const hour = 60 * 60 * 1000
 const day = 24 * hour
 
@@ -23,14 +23,37 @@ const sendResponse = context => {
   return sendFile(context.filePath, context.size, context.res)
 }
 
+const handleError = response => err => {
+  if (err.statusCode === 301 || err.statusCode === 302) {
+    return response.redirect(err.statusCode, err.destination)
+  }
+  console.error(err)
+  response.sendStatus(err.statusCode || 404)
+}
+
 module.exports = serverOpts => {
   const getSizeAndPath = context => Promise.resolve(context)
-    .then(setContext('size', (context) => Number.parseInt(context.req.params.size || context.req.query.size, 10), (value) => value >= 10 && value <= 1000))
+    .then(setContext('rawSize', (context) => (context.req.params.size || context.req.query.size)))
+    .then(setContext('size', (context) => Number.parseInt(context.rawSize, 10), (value) => value >= 10 && value <= 1000))
+    .then(context => new Promise((resolve, reject) => {
+      if (context.req.query.size !== undefined || (context.rawSize && context.rawSize !== `${context.size}`)) {
+        const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
+        if (context.size) {
+          dest.push(`size-${context.size}`)
+        }
+        dest.push(context.req.params['0'])
+        const redir = new Error('redirect!')
+        redir.destination = dest.join('/')
+        redir.statusCode = 301
+        return reject(redir)
+      }
+      resolve(context)
+    }))
     .then(setContext('path', (context) => context.req.params['0']))
     .then(setContext('directory', (context) => stripValidExtensions(`${serverOpts.baseDir}/${context.path}`)))
 
   const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res) => {
-    Promise.resolve({req, res, app})
+    Promise.resolve({ req, res, app })
       .then(getSizeAndPath)
       .then(setContext('directory', (context) => stripValidExtensions(`${serverOpts.baseDir}/${context.path}`)))
       .then(setContext('images', (context) => getImages(context.directory)))
@@ -40,21 +63,15 @@ module.exports = serverOpts => {
       .then(setContext('filePath', context => `${context.directory}/${context.file}`))
       .then(setContext('maxage', maxAge))
       .then(sendResponse)
-      .catch((e) => {
-        console.error(e)
-        res.sendStatus(e.statusCode || 404)
-      })
+      .catch(handleError(res))
   }
-  const staticAvatar = (req, res) => Promise.resolve({req, res, app})
+  const staticAvatar = (req, res) => Promise.resolve({ req, res, app })
     .then(getSizeAndPath)
     .then(setContext('webPath', context => context.path))
     .then(setContext('filePath', (context) => `${serverOpts.baseDir}/${context.path}`))
     .then(setContext('maxage', () => day * 365))
     .then(sendResponse)
-    .catch((e) => {
-      console.error(e)
-      res.sendStatus(e.statusCode || 404)
-    })
+    .catch(handleError(res))
 
   const makePagination = (currentPage, totalPages) => {
     const pageStart = Math.max(currentPage - 5, 1)
@@ -98,7 +115,7 @@ module.exports = serverOpts => {
     return pages
   }
 
-  const listAvatars = (req, res) => Promise.resolve({req, res, app})
+  const listAvatars = (req, res) => Promise.resolve({ req, res, app })
     .then(getSizeAndPath)
     .then(setContext('webDirectory', (context) => stripValidExtensions(context.path)))
     .then(setContext('images', (context) => getImages(context.directory)))
@@ -153,10 +170,7 @@ module.exports = serverOpts => {
           return res.json(context.data)
       }
     })
-    .catch((e) => {
-      console.error(e)
-      res.sendStatus(e.statusCode || 404)
-    })
+    .catch(handleError(res))
 
   const app = express()
   const randomChooser = avatarWithChooser((choices) => choices[Math.floor(Math.random() * choices.length)])
