@@ -20,7 +20,7 @@ const sendResponse = context => {
   const now = Date.now()
   const maxage = context.maxage(now)
   const expires = new Date(now + maxage)
-  context.res.append('Cache-Control', `public max-age=${maxage}`)
+  context.res.append('Cache-Control', `public max-age=${Math.floor(maxage / 1000)}`)
   context.res.append('Expires', expires.toUTCString())
   return sendFile(context.filePath, context.size, context.res)
 }
