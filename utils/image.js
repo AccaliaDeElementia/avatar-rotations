@@ -1,6 +1,6 @@
 'use strict'
 
-const {readFile, readdir} = require('fs')
+const { readFile, readdir } = require('fs')
 
 const sharp = require('sharp')
 const naturalSort = require('node-natural-sort')
@@ -26,13 +26,14 @@ exports.getImages = folder => {
   })
     .then(files => files.filter(file => hasValidExtension(file.split('.').pop())))
     .then(files => {
-      files.sort(naturalSort({caseSensitive: false}))
+      files.sort(naturalSort({ caseSensitive: false }))
       return files
     })
 }
 
 exports.sendFile = (filename, maxWidth, res) => {
-  const ext = filename.split('.').pop().toLowerCase()
+  let ext = filename.split('.').pop().toLowerCase()
+  ext = ext === 'gif' ? ext : 'png'
   return new Promise((resolve, reject) => {
     readFile(filename, (err, data) => err ? reject(err) : resolve(data))
   })
