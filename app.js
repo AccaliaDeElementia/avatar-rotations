@@ -18,6 +18,7 @@ const hbs = require('express-hbs')
 
 const index = require('./routes/index')
 const avatars = require('./routes/avatars')(serverOpts)
+const tanner = require('./routes/tanner')(serverOpts)
 const app = express()
 
 // view engine setup
@@ -40,6 +41,7 @@ app.use(express.static(path.join(__dirname, 'public')))
 
 app.use('/', index)
 app.use('/avatars', avatars)
+app.use('/tanner', tanner)
 
 const redirector = (req, res) => {
   let newPath = `/avatars/${req.params.chooser || 'random'}/`
