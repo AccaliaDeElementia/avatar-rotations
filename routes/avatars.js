@@ -84,6 +84,17 @@ module.exports = serverOpts => {
   const staticAvatar = (req, res) => Promise.resolve({ req, res, app })
     .then(getSizeAndPath)
     .then(setContext('webPath', context => context.path))
+    .then(context => {
+      if (context.path.split('.').pop().toLowerCase() === 'gif' && context.size) {
+        const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
+        dest.push(context.req.params['0'])
+        const redir = new Error('redirect!')
+        redir.destination = dest.join('/')
+        redir.statusCode = 301
+        throw redir
+      }
+      return context
+    })
     .then(setContext('filePath', (context) => `${serverOpts.baseDir}/${context.path}`))
     .then(setContext('maxage', () => (now) => day * 365))
     .then(sendResponse)
