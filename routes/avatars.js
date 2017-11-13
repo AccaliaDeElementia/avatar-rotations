@@ -213,6 +213,10 @@ module.exports = serverOpts => {
   app.get('/static/size-:size/*', staticAvatar)
   app.get('/static/*', staticAvatar)
   app.get('/list/size-:size/*', listAvatars)
+  app.get('/list/size-/*', (req, res) => {
+    let newPath = `/avatars/list/size-300/${req.params[0]}`
+    res.redirect(302, newPath)
+  })
   app.get('/list/*', (req, res) => {
     let newPath = `/avatars/list/size-300/${req.params[0]}`
     res.redirect(302, newPath)
