@@ -19,6 +19,7 @@ const hbs = require('express-hbs')
 const index = require('./routes/index')
 const avatars = require('./routes/avatars')(serverOpts)
 const tanner = require('./routes/tanner')(serverOpts)
+const handleError = require('./utils/errors')
 const app = express()
 
 // view engine setup
@@ -35,7 +36,7 @@ if (serverOpts.debug) {
 app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')))
 app.use(logger('dev'))
 app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({extended: false}))
+app.use(bodyParser.urlencoded({ extended: false }))
 app.use(cookieParser())
 app.use(express.static(path.join(__dirname, 'public')))
 
@@ -64,11 +65,9 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
   // set locals, only providing error in development
   res.locals.message = err.message
-  res.locals.error = serverOpts.debug ? err : {}
+  res.locals.error = err
 
-  // render the error page
-  res.status(err.status || 500)
-  res.render('error')
+  handleError(serverOpts, res, err)
 })
 
 app.listen(serverOpts.port, serverOpts.ip)

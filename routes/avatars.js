@@ -2,6 +2,8 @@
 
 const express = require('express')
 const { getImages, sendFile, stripValidExtensions } = require('../utils/image')
+const handleError = require('../utils/errors')
+
 const hour = 60 * 60 * 1000
 const day = 24 * hour
 
@@ -23,14 +25,6 @@ const sendResponse = context => {
   context.res.append('Cache-Control', `public max-age=${Math.floor(maxage / 1000)}`)
   context.res.append('Expires', expires.toUTCString())
   return sendFile(context.filePath, context.size, context.res)
-}
-
-const handleError = response => err => {
-  if (err.statusCode === 301 || err.statusCode === 302) {
-    return response.redirect(err.statusCode, err.destination)
-  }
-  console.error(err)
-  response.sendStatus(err.statusCode || 404)
 }
 
 module.exports = serverOpts => {
@@ -67,7 +61,7 @@ module.exports = serverOpts => {
     .then(setContext('path', (context) => context.req.params['0']))
     .then(setContext('directory', (context) => stripValidExtensions(`${serverOpts.baseDir}/${context.path}`)))
 
-  const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res) => {
+  const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res, next) => {
     Promise.resolve({ req, res, app })
       .then(standardizePath)
       .then(getSizeAndPath)
@@ -79,9 +73,9 @@ module.exports = serverOpts => {
       .then(setContext('filePath', context => `${context.directory}/${context.file}`))
       .then(setContext('maxage', () => maxAge))
       .then(sendResponse)
-      .catch(handleError(res))
+      .catch(e => handleError(serverOpts, res, e))
   }
-  const staticAvatar = (req, res) => Promise.resolve({ req, res, app })
+  const staticAvatar = (req, res, next) => Promise.resolve({ req, res, app })
     .then(getSizeAndPath)
     .then(setContext('webPath', context => context.path))
     .then(context => {
@@ -98,7 +92,7 @@ module.exports = serverOpts => {
     .then(setContext('filePath', (context) => `${serverOpts.baseDir}/${context.path}`))
     .then(setContext('maxage', () => (now) => day * 365))
     .then(sendResponse)
-    .catch(handleError(res))
+    .catch(e => handleError(serverOpts, res, e))
 
   const makePagination = (currentPage, totalPages) => {
     const pageStart = Math.max(currentPage - 5, 1)
@@ -142,11 +136,19 @@ module.exports = serverOpts => {
     return pages
   }
 
-  const listAvatars = (req, res) => Promise.resolve({ req, res, app })
+  const listAvatars = (req, res, next) => Promise.resolve({ req, res, app })
     .then(standardizePath)
     .then(getSizeAndPath)
     .then(setContext('webDirectory', (context) => stripValidExtensions(context.path)))
     .then(setContext('images', (context) => getImages(context.directory)))
+    .then(context => {
+      if (!context.images || !context.images.length) {
+        const err = new Error('No images found!')
+        err.status = 404
+        throw err
+      }
+      return context
+    })
     .then(setContext('template', (context) => 'templates/list.hbs'))
     .then(setContext('page', (context) => Number.parseInt(context.req.query.page, 10), (value) => value > 0))
     .then((context) => {
@@ -198,13 +200,14 @@ module.exports = serverOpts => {
           return res.json(context.data)
       }
     })
-    .catch(handleError(res))
+    .catch(e => handleError(serverOpts, res, e))
 
   const app = express()
   const randomChooser = avatarWithChooser((choices) => choices[Math.floor(Math.random() * choices.length)], now => 0)
   const sequenceChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / hour) % choices.length], now => hour - now % hour)
   const dailyChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / day) % choices.length], now => day - now % day)
   app.get('/random/size-:size/*', randomChooser)
+  app.get('/random/*', randomChooser)
   app.get('/random/*', randomChooser)
   app.get('/sequence/size-:size/*', sequenceChooser)
   app.get('/sequence/*', sequenceChooser)

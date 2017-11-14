@@ -39,10 +39,9 @@ const tanner = '█████████████████████�
     '█░░░█░░░█▄░░░░░░▄█░░░░████▄░░░░░▄█\n' +
     '██████████████████████████████████\n'
 
-
 module.exports = serverOpts => {
-    const app = express()
-    app.get('/*', (req, res) => res.status(403).set('Content-Type', `text/text`)
-        .send(tanner))
-    return app
+  const app = express()
+  app.get('/*', (req, res) => res.status(403).set('Content-Type', `text/text`)
+    .send(tanner))
+  return app
 }
