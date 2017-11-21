@@ -28,7 +28,7 @@ const serializeImage = (image, directory, basePath) => {
   }
 }
 
-const createPagination = (page, totalPages) => {
+const findPaginationRange = (page, totalPages) => {
   let pageStart = Math.max(1, page - 5)
   let pageEnd = Math.min(page + 5, totalPages)
   if (pageStart === 1) {
@@ -37,6 +37,10 @@ const createPagination = (page, totalPages) => {
   if (pageEnd === totalPages) {
     pageStart = Math.max(1, pageEnd - 11)
   }
+  return [pageStart, pageEnd]
+}
+
+const createPaginationPre = pageStart => {
   const pages = []
   if (pageStart > 1) {
     pages.push({
@@ -50,6 +54,12 @@ const createPagination = (page, totalPages) => {
       css: 'disabled'
     })
   }
+  return pages
+}
+
+const createPagination = (page, totalPages) => {
+  const [pageStart, pageEnd] = findPaginationRange(page, totalPages)
+  const pages = createPaginationPre(pageStart)
   for (let i = pageStart; i <= pageEnd; i++) {
     pages.push({
       page: i,
