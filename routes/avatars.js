@@ -206,6 +206,12 @@ module.exports = serverOpts => {
   const randomChooser = avatarWithChooser((choices) => choices[Math.floor(Math.random() * choices.length)], now => 0)
   const sequenceChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / hour) % choices.length], now => hour - now % hour)
   const dailyChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / day) % choices.length], now => day - now % day)
+  const error404 = (req, res) => {
+    const err = new Error(404)
+    err.statusCode = 404
+    handleError(serverOpts, res, err)
+  }
+  app.get('/', error404)
   app.get('/random/size-:size/*', randomChooser)
   app.get('/random/*', randomChooser)
   app.get('/random/*', randomChooser)
