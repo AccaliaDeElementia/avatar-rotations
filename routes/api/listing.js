@@ -2,24 +2,11 @@
 
 const { getImages } = require('../../utils/image')
 
-const serializeDynamicImage = (type, directory, basePath) => {
-  const resizeable = true
-  // TODO: this really should be route driven not hard coded
-  const staticLink = `${basePath}/${type}/${directory}`
-  const sizeableLink = resizeable ? `${basePath}/${type}/size=%SIZE%/${directory}` : staticLink
-  return {
-    name: type,
-    resizeable,
-    staticLink,
-    sizeableLink
-  }
-}
-
-const serializeImage = (image, directory, basePath) => {
+const serializeImage = (image, directory, basePath, type = 'static') => {
   const resizeable = image.split('.').pop().toLowerCase() !== 'gif'
   // TODO: this really should be route driven not hard coded
-  const staticLink = `${basePath}/static/${directory}/${image}`
-  const sizeableLink = resizeable ? `${basePath}/static/size-%SIZE%/${directory}/${image}` : staticLink
+  const staticLink = `${basePath}/${type}/${directory}/${image}`
+  const sizeableLink = resizeable ? `${basePath}/${type}/size-%SIZE%/${directory}/${image}` : staticLink
   return {
     name: image,
     resizeable,
@@ -81,36 +68,48 @@ const createPagination = (page, totalPages) => {
   return pages
 }
 
-exports.getListing = ({ webRoot, basePath, directory, page = 1, pageSize = 50 }) =>
+const pagifyImages = (images, page, pageSize) => {
+  if (pageSize < 1) {
+    return [images, 1, 1]
+  }
+  const pages = Math.ceil(images.length / pageSize)
+  switch (true) {
+    case (page > pages):
+      page = pages
+      break
+    case (page < 1):
+      page = 1
+      break
+    default:
+      page = page || 1
+  }
+  const pageStart = (page - 1) * pageSize
+  const pageEnd = page * pageSize
+  return [images.slice(pageStart, pageEnd), page, pages]
+}
+
+const getPageLinks = (webRoot, directory, page, pages) => {
+  return {
+    first: `${webRoot}/list/${directory}?page=1`,
+    prev: pages > 1 ? `${webRoot}/list/${directory}?page=${pages - 1}` : null,
+    current: `${webRoot}/list/${directory}?page=${pages}`,
+    next: pages < myPages ? `${webRoot}/list/${directory}?page=${pages + 1}` : null,
+    last: `${webRoot}/list/${directory}?page=${pages}`
+  }
+}
+
+exports.getListing = ({ webRoot, basePath, directory, page = 1, pageSize = 0 }) =>
   getImages(`${basePath}/${directory}`)
   .then(images => {
-    const pages = Math.ceil(images.length / pageSize)
-    switch (true) {
-      case (page > pages):
-        page = pages
-        break
-      case (page < 1):
-        page = 1
-        break
-      default:
-        page = page || 1
-    }
-    const pageStart = (page - 1) * pageSize
-    const pageEnd = page * pageSize
+    const [pagifiedImages, myPage, myPages] = pagifyImages(images, page, pageSize)
     return {
-      pages: {
-        first: `${webRoot}/list/${directory}?page=1`,
-        prev: page > 1 ? `${webRoot}/list/${directory}?page=${page - 1}` : null,
-        current: `${webRoot}/list/${directory}?page=${page}`,
-        next: page < pages ? `${webRoot}/list/${directory}?page=${page + 1}` : null,
-        last: `${webRoot}/list/${directory}?page=${pages}`
-      },
-      pagination: createPagination(page, pages),
+      pages: getPageLinks(webRoot, directory, myPage, myPages),
+      pagination: createPagination(myPage, myPages),
       directory: {
-        random: serializeDynamicImage('random', directory, '/avatars'),
-        sequence: serializeDynamicImage('sequence', directory, '/avatars'),
-        daily: serializeDynamicImage('daily', directory, '/avatars')
+        random: serializeImage('', directory, '/avatars', 'random'),
+        sequence: serializeImage('', directory, '/avatars', 'sequence'),
+        daily: serializeImage('', directory, '/avatars', 'daily')
       },
-      images: images.slice(pageStart, pageEnd).map(img => serializeImage(img, directory, '/avatars'))
+      images: pagifiedImages.map(img => serializeImage(img, directory, '/avatars'))
     }
   })

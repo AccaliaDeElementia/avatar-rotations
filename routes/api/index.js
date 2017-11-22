@@ -13,7 +13,6 @@ module.exports = serverOpts => {
   }).then(data => res.send(data))
         .catch(e => {
           console.error(e)
-          console.error(e.stack)
           res.send('error')
         }))
   return app
