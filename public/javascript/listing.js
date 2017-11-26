@@ -49,6 +49,7 @@ $(function() {
       '%SIZED%': encodeURI(resizeable ? sizeableLink.replace(/%SIZE%/g, size) : staticLink)
     }
   }
+
   var texts = {
     'link': '%SIZED%',
     'original-link': '%FULL%',
@@ -59,28 +60,26 @@ $(function() {
     'html': '<img src="%SIZED%" />',
     'html-link': '<a href="%FULL%"><img src="%SIZED%" /></a>'
   }
-  $('.action-copy').click(function() {
-    var self = $(this)
-    var replacers = links(self)
-    console.log(replacers)
-    var sourceText = texts[self.data('copy-what')] || texts['link']
-    var text = sourceText
+
+  function getActionText(target) {
+    var replacers = links(target)
+    var text = texts[target.data('action-what')] || texts['link']
     Object.keys(replacers).forEach(function(replacer) {
       var regex = new RegExp(replacer, 'g')
       text = text.replace(regex, replacers[replacer])
     })
+    return text
+  }
+
+  $('.action-copy').click(function() {
+    var self = $(this)
+    var text = getActionText(self)
     copyTextToClipboard(text)
     return false
   })
-    $('.action-view').click(function() {
+  $('.action-view').click(function() {
     var self = $(this)
-    var replacers = links(self)
-    var sourceText = texts[self.data('view-what')] || texts['link']
-    var text = sourceText
-    Object.keys(replacers).forEach(function(replacer) {
-      var regex = new RegExp(replacer, 'g')
-      text = text.replace(regex, replacers[replacer])
-    })
+    var text = getActionText(self)
     window.location = text
     return false
   })

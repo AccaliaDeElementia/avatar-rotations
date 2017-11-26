@@ -103,6 +103,10 @@ module.exports = serverOpts => {
     err.statusCode = 404
     handleError(serverOpts, res, err)
   }
+  const redirectListing = (req, res) => {
+    let newPath = `/listing/size-${req.params.size||300}/${req.params[0]}`
+    res.redirect(302, newPath)
+  }
   app.get('/', error404)
   app.get('/random/size-:size/*', randomChooser)
   app.get('/random/*', randomChooser)
@@ -113,17 +117,8 @@ module.exports = serverOpts => {
   app.get('/daily/*', dailyChooser)
   app.get('/static/size-:size/*', staticAvatar)
   app.get('/static/*', staticAvatar)
-  app.get('/list/size-:size/*', (req, res) => {
-    let newPath = `/listing/size-${req.params.size}/${req.params[0]}`
-    res.redirect(302, newPath)
-  })
-  app.get('/list/size-/*', (req, res) => {
-    let newPath = `/listing/size-300/${req.params[0]}`
-    res.redirect(302, newPath)
-  })
-  app.get('/list/*', (req, res) => {
-    let newPath = `/listing/size-300/${req.params[0]}`
-    res.redirect(302, newPath)
-  })
+  app.get('/list/size-:size/*', redirectListing)
+  app.get('/list/size-/*', redirectListing)
+  app.get('/list/*', redirectListing)
   return app
 }
