@@ -94,114 +94,6 @@ module.exports = serverOpts => {
     .then(sendResponse)
     .catch(e => handleError(serverOpts, res, e))
 
-  const makePagination = (currentPage, totalPages) => {
-    const pageStart = Math.max(currentPage - 5, 1)
-    const pageEnd = Math.min(currentPage + 5, totalPages)
-    const pages = []
-    if (pageStart > 1) {
-      pages.push({
-        title: '1',
-        page: 1,
-        css: (currentPage === 1) ? 'active' : ''
-      })
-    }
-    if (pageStart > 2) {
-      pages.push({
-        title: '...',
-        page: 0,
-        css: 'disabled'
-      })
-    }
-    for (let i = pageStart; i <= pageEnd; i++) {
-      pages.push({
-        title: i,
-        page: i,
-        css: (currentPage === i) ? 'active' : ''
-      })
-    }
-    if (pageEnd < totalPages - 1) {
-      pages.push({
-        title: '...',
-        page: 0,
-        css: 'disabled'
-      })
-    }
-    if (pageEnd < totalPages) {
-      pages.push({
-        title: totalPages,
-        page: totalPages,
-        css: (currentPage === totalPages) ? 'active' : ''
-      })
-    }
-    return pages
-  }
-
-  const listAvatars = (req, res, next) => Promise.resolve({ req, res, app })
-    .then(standardizePath)
-    .then(getSizeAndPath)
-    .then(setContext('webDirectory', (context) => stripValidExtensions(context.path)))
-    .then(setContext('images', (context) => getImages(context.directory)))
-    .then(context => {
-      if (!context.images || !context.images.length) {
-        const err = new Error('No images found!')
-        err.status = 404
-        throw err
-      }
-      return context
-    })
-    .then(setContext('template', (context) => 'templates/list.hbs'))
-    .then(setContext('page', (context) => Number.parseInt(context.req.query.page, 10), (value) => value > 0))
-    .then((context) => {
-      const makeLink = (prefix, path) => `${context.app.path()}/${prefix}/${context.size ? `size-${context.size}/` : ''}${path}`
-      const pages = Math.ceil(context.images.length / serverOpts.pageSize)
-      const page = (context.page > pages) ? pages : context.page || 1
-      const pageStart = (page - 1) * serverOpts.pageSize
-      const pageEnd = page * serverOpts.pageSize
-      context.data = {
-        size: context.size,
-        pagination: makePagination(page, pages),
-        directory: {
-          name: context.webDirectory,
-          links: [{
-            name: 'random',
-            link: makeLink('random', context.webDirectory),
-            linkPrefix: `${context.app.path()}/random`,
-            linkSuffix: context.webDirectory
-          }, {
-            name: 'sequence',
-            link: makeLink('sequence', context.webDirectory),
-            linkPrefix: `${context.app.path()}/sequence`,
-            linkSuffix: context.webDirectory
-          }, {
-            name: 'daily',
-            link: makeLink('daily', context.webDirectory),
-            linkPrefix: `${context.app.path()}/daily`,
-            linkSuffix: context.webDirectory
-          }],
-          linkPrefix: context.app.path()
-        },
-        images: context.images.slice(pageStart, pageEnd).map(img => {
-          return {
-            name: img,
-            link: makeLink('static', `${context.webDirectory}/${img}`),
-            linkPrefix: `${context.app.path()}/static`,
-            linkSuffix: `${context.webDirectory}/${img}`
-          }
-        })
-      }
-      return context
-    })
-    .then(context => {
-      const fmt = req.accepts('html')
-      switch (fmt) {
-        case 'html':
-          return res.render('avatars/list', context.data)
-        default:
-          return res.json(context.data)
-      }
-    })
-    .catch(e => handleError(serverOpts, res, e))
-
   const app = express()
   const randomChooser = avatarWithChooser((choices) => choices[Math.floor(Math.random() * choices.length)], now => 0)
   const sequenceChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / hour) % choices.length], now => hour - now % hour)
@@ -221,13 +113,16 @@ module.exports = serverOpts => {
   app.get('/daily/*', dailyChooser)
   app.get('/static/size-:size/*', staticAvatar)
   app.get('/static/*', staticAvatar)
-  app.get('/list/size-:size/*', listAvatars)
+  app.get('/list/size-:size/*', (req, res) => {
+    let newPath = `/listing/size-${req.params.size}/${req.params[0]}`
+    res.redirect(302, newPath)
+  })
   app.get('/list/size-/*', (req, res) => {
-    let newPath = `/avatars/list/size-300/${req.params[0]}`
+    let newPath = `/listing/size-300/${req.params[0]}`
     res.redirect(302, newPath)
   })
   app.get('/list/*', (req, res) => {
-    let newPath = `/avatars/list/size-300/${req.params[0]}`
+    let newPath = `/listing/size-300/${req.params[0]}`
     res.redirect(302, newPath)
   })
   return app

@@ -1,0 +1,26 @@
+{{#>layout}}
+  {{#*inline "title"}}{{ name }} - Avatar List{{/inline}}
+  {{#*inline "navRight" }} <span class="mr-auto"></span>
+  <form class="form-inline my-2 my-lg-0">
+    <input class="form-control mr-sm-2" type="text" placeholder="Set Avatar Size" aria-label="Set Avatar Size" name="size" value="{{size}}px" />
+    <button class="btn btn-outline-default my-2 my-sm-0 btn-update-sizes">Update Sizes</button>
+  </form>
+  {{/inline}}
+  {{#*inline "body"}}
+    <div>
+      <h1>{{ name }} - Avatar List</h1>
+    </div>
+    <div>
+      <h2>Dynamic Avatars</h2>
+      {{>avatarList dynamic}}
+    </div>
+    {{>pagination pagination}}
+    <div>
+      <h2>Static Avatars</h2>
+      {{>avatarList images}}
+    </div>
+  {{/inline}}
+  {{#*inline "header"}}
+    <script type="text/javascript" src="/javascript/listing.js"></script>
+  {{/inline}}
+{{/layout}}

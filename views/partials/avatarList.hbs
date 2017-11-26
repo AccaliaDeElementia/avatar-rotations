@@ -1,0 +1,36 @@
+<div class="container avatarLinks">
+  <div class="row">
+    {{#.}}
+    <div class="col preview preview-{{name}} border" data-resizeable="{{resizeable}}" data-staticLink="{{staticLink}}" data-sizeableLink="{{sizeableLink}}" data-name="{{name}}">
+      <a href="{{staticLink}}">
+        <div>{{name}}</div>
+        <div class="d-inline-block preview-image"><img src="{{staticLink}}" /></div>
+      </a>
+      <div>
+        <div class="d-inline-block btn-group" role="group">
+          <button type="button" class="btn btn-primary action-copy" data-copy-what="link">Copy</button>
+          <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+          <div class="dropdown-menu">
+            <a class="dropdown-item action-copy" data-copy-what="link" href="#">Copy Current Size</a>
+            <a class="dropdown-item action-copy" data-copy-what="original-link" href="#">Copy Original Size</a>
+            <a class="dropdown-item action-copy" data-copy-what="markdown" href="#">Copy Markdown</a>
+            <a class="dropdown-item action-copy" data-copy-what="markdown-link" href="#">Copy Markdown w/ Link</a>
+            <a class="dropdown-item action-copy" data-copy-what="bbcode" href="#">Copy BBcode</a>
+            <a class="dropdown-item action-copy" data-copy-what="bbcode-link" href="#">Copy BBCode w/ Link</a>
+            <a class="dropdown-item action-copy" data-copy-what="html" href="#">Copy HTML</a>
+            <a class="dropdown-item action-copy" data-copy-what="html-link" href="#">Copy HTML w/ Link</a>
+          </div>
+        </div>
+        <div class="d-inline-block btn-group" role="group">
+          <button type="button" class="btn btn-primary action-view" data-view-what="link">View</button>
+          <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+          <div class="dropdown-menu">
+            <a class="dropdown-item action-view" data-view-what="link" href="#">View Current Size</a>
+            <a class="dropdown-item action-view" data-view-what="original-link" href="#">View Original Size</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {{/.}}
+  </div>
+</div>
