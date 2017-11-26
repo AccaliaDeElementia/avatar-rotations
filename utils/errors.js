@@ -1,8 +1,8 @@
 const { readdir } = require('fs')
 
 const findErrorTemplates = new Promise((resolve, reject) => {
-    readdir('views/errors', (err, files) => err ? reject(err) : resolve(files))
-  })
+  readdir('views/errors', (err, files) => err ? reject(err) : resolve(files))
+})
   .then(files => {
     const map = {}
     files

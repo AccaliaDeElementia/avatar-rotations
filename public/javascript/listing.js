@@ -1,10 +1,10 @@
 'use strict'
-/*global $ */
-$(function() {
-  function updateLinks() {
+/* global $ */
+$(function () {
+  function updateLinks () {
     var size = parseInt($('input[name=size]').val(), 10) || 300
     var containerSize = Math.max(100, size)
-    $('div.preview').each(function() {
+    $('div.preview').each(function () {
       var preview = $(this)
       preview.find('.preview-image').css('width', size).css('height', size)
       preview.css('min-width', containerSize + 38)
@@ -16,7 +16,7 @@ $(function() {
   $('input[name=size]').change(updateLinks).blur(updateLinks)
   updateLinks()
 
-  function copyTextToClipboard(text) {
+  function copyTextToClipboard (text) {
     var textArea = document.createElement('textarea')
     textArea.style.position = 'fixed'
     textArea.style.top = 0
@@ -29,15 +29,14 @@ $(function() {
       if (!document.execCommand('copy')) {
         success = false
       }
-    }
-    catch (err) {
+    } catch (err) {
       success = false
     }
     document.body.removeChild(textArea)
     return success
   }
 
-  function links(button) {
+  function links (button) {
     var size = parseInt($('input[name=size]').val(), 10) || 300
     var container = $(button).closest('.preview')
     var resizeable = container.data('resizeable')
@@ -61,23 +60,23 @@ $(function() {
     'html-link': '<a href="%FULL%"><img src="%SIZED%" /></a>'
   }
 
-  function getActionText(target) {
+  function getActionText (target) {
     var replacers = links(target)
     var text = texts[target.data('action-what')] || texts['link']
-    Object.keys(replacers).forEach(function(replacer) {
+    Object.keys(replacers).forEach(function (replacer) {
       var regex = new RegExp(replacer, 'g')
       text = text.replace(regex, replacers[replacer])
     })
     return text
   }
 
-  $('.action-copy').click(function() {
+  $('.action-copy').click(function () {
     var self = $(this)
     var text = getActionText(self)
     copyTextToClipboard(text)
     return false
   })
-  $('.action-view').click(function() {
+  $('.action-view').click(function () {
     var self = $(this)
     var text = getActionText(self)
     window.location = text

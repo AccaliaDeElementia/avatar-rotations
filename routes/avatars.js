@@ -104,7 +104,7 @@ module.exports = serverOpts => {
     handleError(serverOpts, res, err)
   }
   const redirectListing = (req, res) => {
-    let newPath = `/listing/size-${req.params.size||300}/${req.params[0]}`
+    let newPath = `/listing/size-${req.params.size || 300}/${req.params[0]}`
     res.redirect(302, newPath)
   }
   app.get('/', error404)
