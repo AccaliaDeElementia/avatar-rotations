@@ -17,13 +17,11 @@ module.exports = serverOpts => {
     })
     .then(data => res.render('listing', data))
     .catch(e => handleError(serverOpts, res, e)))
-  app.get('/size-/*', (req, res) => {
+  const redirectWithSize = (req, res) => {
     let newPath = `/listing/size-300/${req.params[0]}`
     res.redirect(302, newPath)
-  })
-  app.get('/*', (req, res) => {
-    let newPath = `/listing/size-300/${req.params[0]}`
-    res.redirect(302, newPath)
-  })
+  }
+  app.get('/size-/*', redirectWithSize)
+  app.get('/*', redirectWithSize)
   return app
 }
