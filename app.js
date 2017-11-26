@@ -18,6 +18,8 @@ const hbs = require('express-hbs')
 
 const index = require('./routes/index')
 const avatars = require('./routes/avatars')(serverOpts)
+const listing = require('./routes/listing')(serverOpts)
+const api = require('./routes/api')(serverOpts)
 const tanner = require('./routes/tanner')(serverOpts)
 const handleError = require('./utils/errors')
 const app = express()
@@ -42,6 +44,8 @@ app.use(express.static(path.join(__dirname, 'public')))
 
 app.use('/', index)
 app.use('/avatars', avatars)
+app.use('/listing', listing)
+app.use('/api', api)
 app.use('/tanner', tanner)
 
 const redirector = (req, res) => {
