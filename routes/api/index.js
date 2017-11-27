@@ -10,10 +10,11 @@ module.exports = serverOpts => {
     basePath: serverOpts.baseDir,
     directory: req.params['0'],
     page: parseInt(req.query.page || '1', 10)
-  }).then(data => res.send(data))
-        .catch(e => {
-          console.error(e)
-          res.send('error')
-        }))
+  })
+    .then(data => res.send(data))
+    .catch(e => {
+      console.error(e)
+      res.status(500).send('error') // TODO: maybe not every error is 500?
+    }))
   return app
 }

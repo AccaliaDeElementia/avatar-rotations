@@ -2,7 +2,7 @@
 
 const express = require('express')
 const { getImages, sendFile, stripValidExtensions } = require('../utils/image')
-const handleError = require('../utils/errors')
+const { handleError, ExpressRedirectError } = require('../utils/errors')
 
 const hour = 60 * 60 * 1000
 const day = 24 * hour
@@ -33,10 +33,7 @@ module.exports = serverOpts => {
       const orig = context.app.path() + context.req.path
       const stripped = stripValidExtensions(orig)
       if (orig !== stripped) {
-        const redir = new Error('redirect!')
-        redir.destination = stripped
-        redir.statusCode = 301
-        throw redir
+        throw new ExpressRedirectError(stripped, 301)
       }
       return context
     })
@@ -51,10 +48,7 @@ module.exports = serverOpts => {
           dest.push(`size-${context.size}`)
         }
         dest.push(context.req.params['0'])
-        const redir = new Error('redirect!')
-        redir.destination = dest.join('/')
-        redir.statusCode = 301
-        return reject(redir)
+        return reject(new ExpressRedirectError(dest.join('/'), 301))
       }
       resolve(context)
     }))
@@ -82,10 +76,7 @@ module.exports = serverOpts => {
       if (context.path.split('.').pop().toLowerCase() === 'gif' && context.size) {
         const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
         dest.push(context.req.params['0'])
-        const redir = new Error('redirect!')
-        redir.destination = dest.join('/')
-        redir.statusCode = 301
-        throw redir
+        throw new ExpressRedirectError(dest.join('/'), 301)
       }
       return context
     })
@@ -98,27 +89,16 @@ module.exports = serverOpts => {
   const randomChooser = avatarWithChooser((choices) => choices[Math.floor(Math.random() * choices.length)], now => 0)
   const sequenceChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / hour) % choices.length], now => hour - now % hour)
   const dailyChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / day) % choices.length], now => day - now % day)
-  const error404 = (req, res) => {
-    const err = new Error(404)
-    err.statusCode = 404
-    handleError(serverOpts, res, err)
-  }
+  const error404 = (req, res) => handleError(serverOpts, res, new ExpressRedirectError('Nobody here but is chickens.', 404))
   const redirectListing = (req, res) => {
     let newPath = `/listing/size-${req.params.size || 300}/${req.params[0]}`
     res.redirect(302, newPath)
   }
-  app.get('/', error404)
-  app.get('/random/size-:size/*', randomChooser)
-  app.get('/random/*', randomChooser)
-  app.get('/random/*', randomChooser)
-  app.get('/sequence/size-:size/*', sequenceChooser)
-  app.get('/sequence/*', sequenceChooser)
-  app.get('/daily/size-:size/*', dailyChooser)
-  app.get('/daily/*', dailyChooser)
-  app.get('/static/size-:size/*', staticAvatar)
-  app.get('/static/*', staticAvatar)
-  app.get('/list/size-:size/*', redirectListing)
-  app.get('/list/size-/*', redirectListing)
-  app.get('/list/*', redirectListing)
+  app.get(['/', '/random', '/random/size-:size', '/random/size-', 'sequence', '/sequence/size-:size', '/sequence/size-', '/daily', '/daily/size-:size', '/daily/size-', '/static', '/static/size-:size', '/static/size-'], error404)
+  app.get(['/random/size-:size/*', '/random/*'], randomChooser)
+  app.get(['/sequence/size-:size/*', '/sequence/*'], sequenceChooser)
+  app.get(['/daily/size-:size/*', '/daily/*'], dailyChooser)
+  app.get(['/static/size-:size/*', '/static/*'], staticAvatar)
+  app.get(['/list/size-:size/*', '/list/size-/*', '/list/*'], redirectListing)
   return app
 }
