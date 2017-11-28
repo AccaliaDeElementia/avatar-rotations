@@ -9,12 +9,12 @@ module.exports = serverOpts => {
   app.get('/size-:size/*', (req, res) => {
     const page = parseInt(req.query.page || '1', 10)
     return getListing({
-        webRoot: app.path(),
-        basePath: serverOpts.baseDir,
-        directory: req.params['0'],
-        page: page,
-        pageSize: 50
-      })
+      webRoot: app.path(),
+      basePath: serverOpts.baseDir,
+      directory: req.params['0'],
+      page: page,
+      pageSize: 50
+    })
       .then(data => {
         data.size = req.params.size || '300'
         console.log(data.pages.current, page)
