@@ -4,7 +4,6 @@ const { handleError, ExpressRedirectError } = require('../utils/errors')
 
 const shimData = (data, page, app, req) => {
   data.size = req.params.size || '300'
-  console.log(data.pages.current, page)
   if (data.pages.current !== page) {
     const dest = [app.path(), `size-${data.size}`, `${req.params['0']}?page=${data.pages.current}`]
     throw new ExpressRedirectError(dest.join('/'))
