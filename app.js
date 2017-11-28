@@ -21,7 +21,7 @@ const avatars = require('./routes/avatars')(serverOpts)
 const listing = require('./routes/listing')(serverOpts)
 const api = require('./routes/api')(serverOpts)
 const tanner = require('./routes/tanner')(serverOpts)
-const handleError = require('./utils/errors')
+const { handleError, ExpressRedirectError } = require('./utils/errors')
 const app = express()
 
 // view engine setup
@@ -60,8 +60,7 @@ app.get('/:folder/:chooser?/:width?.png', redirector)
 
 // catch 404 and forward to error handler
 app.use((req, res, next) => {
-  const err = new Error('Not Found')
-  err.status = 404
+  const err = new ExpressRedirectError('Not Found', 404)
   next(err)
 })
 

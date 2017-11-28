@@ -1,8 +1,8 @@
 const { readdir } = require('fs')
 
 const findErrorTemplates = new Promise((resolve, reject) => {
-    readdir('views/errors', (err, files) => err ? reject(err) : resolve(files))
-  })
+  readdir('views/errors', (err, files) => err ? reject(err) : resolve(files))
+})
   .then(files => {
     const map = {}
     files
@@ -13,14 +13,29 @@ const findErrorTemplates = new Promise((resolve, reject) => {
     return map
   }).catch(e => { return {} })
 
-module.exports = (serverOpts, res, err) => {
-  const statusCode = err.statusCode || err.code === 'ENOENT' ? 404 : 500
+exports.ExpressRedirectError = class ExpressRedirectError extends Error {
+  constructor (destination, status = 302) {
+    super(`${status >= 400 ? 'Error' : 'Redirecting to'}: '${destination}'`)
+    this.name = this.constructor.name
+    Error.captureStackTrace(this, this.constructor)
+    this.statusCode = status || 500
+    this.destination = destination
+  }
+}
+
+exports.handleError = (serverOpts, res, err) => {
+  const statusCode = err.statusCode || (err.code === 'ENOENT' ? 404 : 500)
   if (statusCode === 301 || statusCode === 302) {
     return res.redirect(err.statusCode, err.destination || '/')
   }
   if (serverOpts.debug) {
-    console.error(err)
-    return res.status(statusCode).render('errors/dev')
+    console.error(err.message)
+    console.error(err.stack)
+    return res.status(statusCode).render('errors/dev', {
+      message: err.message,
+      statusCode: err.statusCode,
+      stack: err.stack
+    })
   }
   return findErrorTemplates
     .then(templates => templates[statusCode] || '500') // use the 500 template if no specific template found
