@@ -1,8 +1,8 @@
 'use strict'
 
 const express = require('express')
-const { getImages, sendFile, stripValidExtensions } = require('../utils/image')
-const { handleError, ExpressRedirectError } = require('../utils/errors')
+const { getImages, sendFile, stripValidExtensions } = require('../../utils/image')
+const { handleError, ExpressRedirectError } = require('../../utils/errors')
 
 const hour = 60 * 60 * 1000
 const day = 24 * hour

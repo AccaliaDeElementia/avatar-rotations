@@ -1,7 +1,7 @@
 'use strict'
 
 const { readFile, readdir } = require('fs')
-
+const {normalize} = require('path')
 const sharp = require('sharp')
 const naturalSort = require('node-natural-sort')
 const { ExpressRedirectError } = require('./errors')
@@ -13,7 +13,7 @@ exports.stripValidExtensions = (path) => {
   if (validExtensions.some((ext) => ext === parts[parts.length - 1])) {
     parts.pop()
   }
-  return parts.join('.')
+  return parts.join('.').replace(/\/+$/, '')
 }
 
 const hasValidExtension = ext => {
@@ -23,7 +23,7 @@ const hasValidExtension = ext => {
 
 exports.getImages = folder => {
   return new Promise((resolve, reject) => {
-    if (/(^|\/)..(\/|$)/.test(folder)){
+    if (folder !== normalize(folder)) {
       return reject(new ExpressRedirectError('Attempted directory traversal', 403))
     }
     readdir(folder, (err, files) => err ? reject(err) : resolve(files))
@@ -39,7 +39,7 @@ exports.sendFile = (filename, maxWidth, res) => {
   let ext = filename.split('.').pop().toLowerCase()
   ext = ext === 'gif' ? ext : 'png'
   return new Promise((resolve, reject) => {
-    if (/(^|\/)..(\/|$)/.test(filename)){
+    if (filename !== normalize(filename)) {
       return reject(new ExpressRedirectError('Attempted directory traversal', 403))
     }
     readFile(filename, (err, data) => err ? reject(err) : resolve(data))
