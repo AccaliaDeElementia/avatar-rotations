@@ -37,7 +37,7 @@ module.exports = serverOpts => {
       .catch(e => handleError(serverOpts, res, e))
   })
   app.get(['/*', '/size-/*'], (req, res) => {
-    let newPath = `/size-300/${req.params[0]}`
+    let newPath = `${app.path()}/size-300/${req.params[0]}`
     res.redirect(302, newPath)
   })
   return app
