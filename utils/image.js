@@ -4,6 +4,7 @@ const { readFile, readdir } = require('fs')
 
 const sharp = require('sharp')
 const naturalSort = require('node-natural-sort')
+const { ExpressRedirectError } = require('./errors')
 
 const validExtensions = exports.validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'tif', 'tiff']
 
@@ -22,6 +23,9 @@ const hasValidExtension = ext => {
 
 exports.getImages = folder => {
   return new Promise((resolve, reject) => {
+    if (/(^|\/)..(\/|$)/.test(folder)){
+      return reject(new ExpressRedirectError('Attempted directory traversal', 403))
+    }
     readdir(folder, (err, files) => err ? reject(err) : resolve(files))
   })
     .then(files => files.filter(file => hasValidExtension(file.split('.').pop())))
@@ -35,6 +39,9 @@ exports.sendFile = (filename, maxWidth, res) => {
   let ext = filename.split('.').pop().toLowerCase()
   ext = ext === 'gif' ? ext : 'png'
   return new Promise((resolve, reject) => {
+    if (/(^|\/)..(\/|$)/.test(filename)){
+      return reject(new ExpressRedirectError('Attempted directory traversal', 403))
+    }
     readFile(filename, (err, data) => err ? reject(err) : resolve(data))
   })
     .then(data => (ext === 'gif') ? data : sharp(data).rotate().resize(maxWidth, maxWidth).max().toBuffer())
