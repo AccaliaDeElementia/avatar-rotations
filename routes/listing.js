@@ -3,7 +3,14 @@ const { getListing } = require('./api/listing')
 const { handleError, ExpressRedirectError } = require('../utils/errors')
 
 const shimData = (data, page, app, req) => {
-  data.size = req.params.size || '300'
+  data.size = parseInt(req.params.size, 10) || 300
+  if (data.size < 10 || data.size > 1000) {
+    data.size = 300
+  }
+  if (`${data.size}` !== req.params.size) {
+    const dest = [app.path(), `size-${data.size}`, `${req.params['0']}?page=${data.pages.current}`]
+    throw new ExpressRedirectError(dest.join('/'))
+  }
   if (data.pages.current !== page) {
     const dest = [app.path(), `size-${data.size}`, `${req.params['0']}?page=${data.pages.current}`]
     throw new ExpressRedirectError(dest.join('/'))
@@ -30,7 +37,7 @@ module.exports = serverOpts => {
       .catch(e => handleError(serverOpts, res, e))
   })
   app.get(['/*', '/size-/*'], (req, res) => {
-    let newPath = `/listing/size-300/${req.params[0]}`
+    let newPath = `${app.path()}/size-300/${req.params[0]}`
     res.redirect(302, newPath)
   })
   return app

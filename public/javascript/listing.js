@@ -3,6 +3,10 @@
 $(function () {
   function updateLinks () {
     var size = parseInt($('input[name=size]').val(), 10) || 300
+    if (size < 10 || size > 1000) {
+      size = 300
+      $('input[name=size]').val('300px')
+    }
     var containerSize = Math.max(100, size)
     $('div.preview').each(function () {
       var preview = $(this)
