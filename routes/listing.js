@@ -7,11 +7,7 @@ const shimData = (data, page, app, req) => {
   if (data.size < 10 || data.size > 1000) {
     data.size = 300
   }
-  if (`${data.size}` !== req.params.size) {
-    const dest = [app.path(), `size-${data.size}`, `${req.params['0']}?page=${data.pages.current}`]
-    throw new ExpressRedirectError(dest.join('/'))
-  }
-  if (data.pages.current !== page) {
+  if (`${data.size}` !== req.params.size || data.pages.current !== page) {
     const dest = [app.path(), `size-${data.size}`, `${req.params['0']}?page=${data.pages.current}`]
     throw new ExpressRedirectError(dest.join('/'))
   }

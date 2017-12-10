@@ -2,11 +2,13 @@
 /* global $ */
 $(function () {
   function updateLinks () {
-    var size = parseInt($('input[name=size]').val(), 10) || 300
-    if (size < 10 || size > 1000) {
-      size = 300
-      $('input[name=size]').val('300px')
+    var input = $('input[name=size]')
+    var size = parseInt(input.val(), 10)
+    if (!size || size < 10 || size > 1000) {
+      input.val('').addClass('invalid')
+      return
     }
+    input.removeClass('invalid')
     var containerSize = Math.max(100, size)
     $('div.preview').each(function () {
       var preview = $(this)
@@ -17,7 +19,7 @@ $(function () {
     return false
   }
   $('.btn-update-sizes').click(updateLinks)
-  $('input[name=size]').change(updateLinks).blur(updateLinks)
+  //$('input[name=size]').change(updateLinks).blur(updateLinks)
   updateLinks()
 
   function copyTextToClipboard (text) {
