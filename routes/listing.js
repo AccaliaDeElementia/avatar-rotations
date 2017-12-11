@@ -25,7 +25,7 @@ module.exports = serverOpts => {
       basePath: serverOpts.baseDir,
       directory: req.params['0'],
       page: page,
-      pageSize: 50
+      pageSize: serverOpts.pageSize
     }
     return getListing(opts)
       .then(data => shimData(data, page, app, req))
