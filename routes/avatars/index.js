@@ -37,22 +37,24 @@ const standardizePath = context => Promise.resolve(context)
     return context
   })
 
-const definedSize = context => context.req.query.size !== undefined || (context.rawSize && context.rawSize !== `${context.size}`)
+const isUnnormalizedSize = context => context.req.query.size !== undefined || (context.rawSize && context.rawSize !== `${context.size}`)
+
+const normalizeSize = context => {
+  if (isUnnormalizedSize(context)) {
+    const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
+    if (context.size) {
+      dest.push(`size-${context.size}`)
+    }
+    dest.push(context.req.params['0'])
+    throw new ExpressRedirectError(dest.join('/'), 301)
+  }
+  return context
+}
 
 const getSizeAndPath = context => Promise.resolve(context)
   .then(setContext('rawSize', (context) => (context.req.params.size || context.req.query.size)))
   .then(setContext('size', (context) => Number.parseInt(context.rawSize, 10), (value) => value >= 10 && value <= 1000))
-  .then(context => new Promise((resolve, reject) => {
-    if (definedSize(context)) {
-      const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
-      if (context.size) {
-        dest.push(`size-${context.size}`)
-      }
-      dest.push(context.req.params['0'])
-      return reject(new ExpressRedirectError(dest.join('/'), 301))
-    }
-    resolve(context)
-  }))
+  .then(normalizeSize)
   .then(setContext('path', (context) => context.req.params['0']))
   .then(setContext('directory', (context) => stripValidExtensions(`${context.baseDir}/${context.path}`)))
 
