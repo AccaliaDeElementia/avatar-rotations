@@ -21,13 +21,17 @@ const hasValidExtension = ext => {
   return validExtensions.some(validExt => validExt === ext)
 }
 
-exports.getImages = folder => {
+const safeExec = (fn, param) => {
   return new Promise((resolve, reject) => {
-    if (folder !== normalize(folder)) {
+    if (param !== normalize(param)) {
       return reject(new ExpressRedirectError('Attempted directory traversal', 403))
     }
-    readdir(folder, (err, files) => err ? reject(err) : resolve(files))
+    fn(param, (err, files) => err ? reject(err) : resolve(files))
   })
+}
+
+exports.getImages = folder => {
+  return safeExec(readdir, folder)
     .then(files => files.filter(file => hasValidExtension(file.split('.').pop())))
     .then(files => {
       files.sort(naturalSort({ caseSensitive: false }))
@@ -38,12 +42,7 @@ exports.getImages = folder => {
 exports.sendFile = (filename, maxWidth, res) => {
   let ext = filename.split('.').pop().toLowerCase()
   ext = ext === 'gif' ? ext : 'png'
-  return new Promise((resolve, reject) => {
-    if (filename !== normalize(filename)) {
-      return reject(new ExpressRedirectError('Attempted directory traversal', 403))
-    }
-    readFile(filename, (err, data) => err ? reject(err) : resolve(data))
-  })
+  return safeExec(readFile, filename)
     .then(data => (ext === 'gif') ? data : sharp(data).rotate().resize(maxWidth, maxWidth).max().toBuffer())
     .then(data => res.set('Content-Type', `image/${ext}`).send(data))
 }

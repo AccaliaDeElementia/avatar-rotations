@@ -27,39 +27,43 @@ const sendResponse = context => {
   return sendFile(context.filePath, context.size, context.res)
 }
 
+const standardizePath = context => Promise.resolve(context)
+  .then(context => {
+    const orig = context.app.path() + context.req.path
+    const stripped = stripValidExtensions(orig)
+    if (orig !== stripped) {
+      throw new ExpressRedirectError(stripped, 301)
+    }
+    return context
+  })
+
+const isUnnormalizedSize = context => context.req.query.size !== undefined || (context.rawSize && context.rawSize !== `${context.size}`)
+
+const normalizeSize = context => {
+  if (isUnnormalizedSize(context)) {
+    const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
+    if (context.size) {
+      dest.push(`size-${context.size}`)
+    }
+    dest.push(context.req.params['0'])
+    throw new ExpressRedirectError(dest.join('/'), 301)
+  }
+  return context
+}
+
+const getSizeAndPath = context => Promise.resolve(context)
+  .then(setContext('rawSize', (context) => (context.req.params.size || context.req.query.size)))
+  .then(setContext('size', (context) => Number.parseInt(context.rawSize, 10), (value) => value >= 10 && value <= 1000))
+  .then(normalizeSize)
+  .then(setContext('path', (context) => context.req.params['0']))
+  .then(setContext('directory', (context) => stripValidExtensions(`${context.baseDir}/${context.path}`)))
+
 module.exports = serverOpts => {
-  const standardizePath = context => Promise.resolve(context)
-    .then(context => {
-      const orig = context.app.path() + context.req.path
-      const stripped = stripValidExtensions(orig)
-      if (orig !== stripped) {
-        throw new ExpressRedirectError(stripped, 301)
-      }
-      return context
-    })
-
-  const getSizeAndPath = context => Promise.resolve(context)
-    .then(setContext('rawSize', (context) => (context.req.params.size || context.req.query.size)))
-    .then(setContext('size', (context) => Number.parseInt(context.rawSize, 10), (value) => value >= 10 && value <= 1000))
-    .then(context => new Promise((resolve, reject) => {
-      if (context.req.query.size !== undefined || (context.rawSize && context.rawSize !== `${context.size}`)) {
-        const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
-        if (context.size) {
-          dest.push(`size-${context.size}`)
-        }
-        dest.push(context.req.params['0'])
-        return reject(new ExpressRedirectError(dest.join('/'), 301))
-      }
-      resolve(context)
-    }))
-    .then(setContext('path', (context) => context.req.params['0']))
-    .then(setContext('directory', (context) => stripValidExtensions(`${serverOpts.baseDir}/${context.path}`)))
-
   const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res, next) => {
-    Promise.resolve({ req, res, app })
+    Promise.resolve({ req, res, app, baseDir: serverOpts.baseDir })
       .then(standardizePath)
       .then(getSizeAndPath)
-      .then(setContext('directory', (context) => stripValidExtensions(`${serverOpts.baseDir}/${context.path}`)))
+      .then(setContext('directory', (context) => stripValidExtensions(`${context.baseDir}/${context.path}`)))
       .then(setContext('images', (context) => getImages(context.directory)))
       .then(setContext('chooser', () => chooser))
       .then(setContext('file', context => context.chooser(context.images)))
