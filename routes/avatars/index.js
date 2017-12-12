@@ -58,19 +58,22 @@ const getSizeAndPath = context => Promise.resolve(context)
   .then(setContext('path', (context) => context.req.params['0']))
   .then(setContext('directory', (context) => stripValidExtensions(`${context.baseDir}/${context.path}`)))
 
-module.exports = serverOpts => {
-  const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res, next) => {
-    Promise.resolve({ req, res, app, baseDir: serverOpts.baseDir })
+const sendWithChooser = context => Promise.resolve(context)
       .then(standardizePath)
       .then(getSizeAndPath)
       .then(setContext('directory', (context) => stripValidExtensions(`${context.baseDir}/${context.path}`)))
       .then(setContext('images', (context) => getImages(context.directory)))
-      .then(setContext('chooser', () => chooser))
+      .then(setContext('chooser', () => context.chooser))
       .then(setContext('file', context => context.chooser(context.images)))
       .then(setContext('webPath', context => `${context.path}/${context.file}`))
       .then(setContext('filePath', context => `${context.directory}/${context.file}`))
-      .then(setContext('maxage', () => maxAge))
+      .then(setContext('maxage', () => context.maxAge))
       .then(sendResponse)
+
+module.exports = serverOpts => {
+  const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res, next) => {
+    Promise.resolve({ req, res, app, baseDir: serverOpts.baseDir, chooser, maxAge })
+      .then(sendWithChooser)
       .catch(e => handleError(serverOpts, res, e))
   }
   const staticAvatar = (req, res, next) => Promise.resolve({ req, res, app })
@@ -84,7 +87,7 @@ module.exports = serverOpts => {
       }
       return context
     })
-    .then(setContext('filePath', (context) => `${serverOpts.baseDir}/${context.path}`))
+    .then(setContext('filePath', (context) => `${context.baseDir}/${context.path}`))
     .then(setContext('maxage', () => (now) => day * 365))
     .then(sendResponse)
     .catch(e => handleError(serverOpts, res, e))
