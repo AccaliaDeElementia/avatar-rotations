@@ -21,7 +21,7 @@ const hasValidExtension = ext => {
   return validExtensions.some(validExt => validExt === ext)
 }
 
-const safeExec = (fn, param) =>{
+const safeExec = (fn, param) => {
   return new Promise((resolve, reject) => {
     if (param !== normalize(param)) {
       return reject(new ExpressRedirectError('Attempted directory traversal', 403))

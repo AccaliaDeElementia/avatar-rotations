@@ -19,7 +19,7 @@ $(function () {
     return false
   }
   $('.btn-update-sizes').click(updateLinks)
-  //$('input[name=size]').change(updateLinks).blur(updateLinks)
+  // $('input[name=size]').change(updateLinks).blur(updateLinks)
   updateLinks()
 
   function copyTextToClipboard (text) {
