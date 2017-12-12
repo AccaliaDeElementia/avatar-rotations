@@ -37,11 +37,13 @@ const standardizePath = context => Promise.resolve(context)
     return context
   })
 
+const definedSize = context => context.req.query.size !== undefined || (context.rawSize && context.rawSize !== `${context.size}`)
+
 const getSizeAndPath = context => Promise.resolve(context)
   .then(setContext('rawSize', (context) => (context.req.params.size || context.req.query.size)))
   .then(setContext('size', (context) => Number.parseInt(context.rawSize, 10), (value) => value >= 10 && value <= 1000))
   .then(context => new Promise((resolve, reject) => {
-    if (context.req.query.size !== undefined || (context.rawSize && context.rawSize !== `${context.size}`)) {
+    if (definedSize(context)) {
       const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
       if (context.size) {
         dest.push(`size-${context.size}`)
