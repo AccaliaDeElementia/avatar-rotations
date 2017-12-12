@@ -24,14 +24,12 @@ const findPaginationRange = (page, totalPages) => {
   if (pageEnd === totalPages) {
     pageStart = Math.max(1, pageEnd - 11)
   }
-  console.log([pageStart, pageEnd])
   if (pageStart === 3) {
     pageStart = 2 // Don't elipsize a single page
   }
   if (pageEnd === totalPages - 2) {
     pageEnd = totalPages - 1 // Don't elipsize a single page
   }
-  console.log([pageStart, pageEnd])
   return [pageStart, pageEnd]
 }
 
@@ -46,7 +44,7 @@ const createPaginationPre = pageStart => {
   if (pageStart > 2) {
     pages.push({
       page: '...',
-      css: 'disabled'
+      css: 'trigger-page-jumper'
     })
   }
   return pages
@@ -64,7 +62,7 @@ const createPagination = (page, totalPages) => {
   if (pageEnd < totalPages - 1) {
     pages.push({
       page: '...',
-      css: 'disabled'
+      css: 'trigger-page-jumper'
     })
   }
   if (pageEnd < totalPages) {
