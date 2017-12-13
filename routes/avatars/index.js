@@ -38,10 +38,11 @@ const standardizePath = context => Promise.resolve(context)
   })
 
 const isUnnormalizedSize = context => context.req.query.size !== undefined || (context.rawSize && context.rawSize !== `${context.size}`)
+const getBasePath = context => [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
 
 const normalizeSize = context => {
   if (isUnnormalizedSize(context)) {
-    const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
+    const dest = getBasePath(context)
     if (context.size) {
       dest.push(`size-${context.size}`)
     }
@@ -58,50 +59,58 @@ const getSizeAndPath = context => Promise.resolve(context)
   .then(setContext('path', (context) => context.req.params['0']))
   .then(setContext('directory', (context) => stripValidExtensions(`${context.baseDir}/${context.path}`)))
 
-module.exports = serverOpts => {
-  const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res, next) => {
-    Promise.resolve({ req, res, app, baseDir: serverOpts.baseDir })
+const sendWithChooser = context => Promise.resolve(context)
       .then(standardizePath)
       .then(getSizeAndPath)
       .then(setContext('directory', (context) => stripValidExtensions(`${context.baseDir}/${context.path}`)))
       .then(setContext('images', (context) => getImages(context.directory)))
-      .then(setContext('chooser', () => chooser))
+      .then(setContext('chooser', () => context.chooser))
       .then(setContext('file', context => context.chooser(context.images)))
       .then(setContext('webPath', context => `${context.path}/${context.file}`))
       .then(setContext('filePath', context => `${context.directory}/${context.file}`))
-      .then(setContext('maxage', () => maxAge))
+      .then(setContext('maxage', () => context.maxAge))
       .then(sendResponse)
+
+const sendStatic = context => Promise.resolve(context)
+  .then(getSizeAndPath)
+  .then(setContext('webPath', context => context.path))
+  .then(context => {
+    if (context.path.split('.').pop().toLowerCase() === 'gif' && context.size) {
+      const dest = getBasePath(context)
+      dest.push(context.req.params['0'])
+      throw new ExpressRedirectError(dest.join('/'), 301)
+    }
+    return context
+  })
+  .then(setContext('filePath', (context) => `${context.baseDir}/${context.path}`))
+  .then(setContext('maxage', () => (now) => day * 365))
+  .then(sendResponse)
+
+const redirectListing = (req, res) => {
+  let newPath = `/listing/size-${req.params.size || 300}/${req.params[0]}`
+  res.redirect(302, newPath)
+}
+
+module.exports = serverOpts => {
+  const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res, next) => {
+    Promise.resolve({ req, res, app, baseDir: serverOpts.baseDir, chooser, maxAge })
+      .then(sendWithChooser)
       .catch(e => handleError(serverOpts, res, e))
   }
-  const staticAvatar = (req, res, next) => Promise.resolve({ req, res, app })
-    .then(getSizeAndPath)
-    .then(setContext('webPath', context => context.path))
-    .then(context => {
-      if (context.path.split('.').pop().toLowerCase() === 'gif' && context.size) {
-        const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
-        dest.push(context.req.params['0'])
-        throw new ExpressRedirectError(dest.join('/'), 301)
-      }
-      return context
-    })
-    .then(setContext('filePath', (context) => `${serverOpts.baseDir}/${context.path}`))
-    .then(setContext('maxage', () => (now) => day * 365))
-    .then(sendResponse)
+  const staticAvatar = (req, res, next) => Promise.resolve({ req, res, app, baseDir: serverOpts.baseDir })
+    .then(sendStatic)
     .catch(e => handleError(serverOpts, res, e))
+
+  const chooseByTime = (period) => avatarWithChooser((choices) => choices[Math.floor(Date.now() / period) % choices.length], now => period - now % period)
 
   const app = express()
   const randomChooser = avatarWithChooser((choices) => choices[Math.floor(Math.random() * choices.length)], now => 0)
-  const sequenceChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / hour) % choices.length], now => hour - now % hour)
-  const dailyChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / day) % choices.length], now => day - now % day)
+
   const error404 = (req, res) => handleError(serverOpts, res, new ExpressRedirectError('Nobody here but is chickens.', 404))
-  const redirectListing = (req, res) => {
-    let newPath = `/listing/size-${req.params.size || 300}/${req.params[0]}`
-    res.redirect(302, newPath)
-  }
   app.get(['/', '/random', '/random/size-:size', '/random/size-', 'sequence', '/sequence/size-:size', '/sequence/size-', '/daily', '/daily/size-:size', '/daily/size-', '/static', '/static/size-:size', '/static/size-'], error404)
   app.get(['/random/size-:size/*', '/random/*'], randomChooser)
-  app.get(['/sequence/size-:size/*', '/sequence/*'], sequenceChooser)
-  app.get(['/daily/size-:size/*', '/daily/*'], dailyChooser)
+  app.get(['/sequence/size-:size/*', '/sequence/*'], chooseByTime(hour))
+  app.get(['/daily/size-:size/*', '/daily/*'], chooseByTime(day))
   app.get(['/static/size-:size/*', '/static/*'], staticAvatar)
   app.get(['/list/size-:size/*', '/list/size-/*', '/list/*'], redirectListing)
   return app
