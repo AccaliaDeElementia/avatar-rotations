@@ -70,6 +70,26 @@ const sendWithChooser = context => Promise.resolve(context)
       .then(setContext('maxage', () => context.maxAge))
       .then(sendResponse)
 
+const sendStatic = context => Promise.resolve(context)
+  .then(getSizeAndPath)
+  .then(setContext('webPath', context => context.path))
+  .then(context => {
+    if (context.path.split('.').pop().toLowerCase() === 'gif' && context.size) {
+      const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
+      dest.push(context.req.params['0'])
+      throw new ExpressRedirectError(dest.join('/'), 301)
+    }
+    return context
+  })
+  .then(setContext('filePath', (context) => `${context.baseDir}/${context.path}`))
+  .then(setContext('maxage', () => (now) => day * 365))
+  .then(sendResponse)
+  
+  const redirectListing = (req, res) => {
+    let newPath = `/listing/size-${req.params.size || 300}/${req.params[0]}`
+    res.redirect(302, newPath)
+  }
+  
 module.exports = serverOpts => {
   const avatarWithChooser = (chooser, maxAge = () => 0) => (req, res, next) => {
     Promise.resolve({ req, res, app, baseDir: serverOpts.baseDir, chooser, maxAge })
@@ -77,19 +97,7 @@ module.exports = serverOpts => {
       .catch(e => handleError(serverOpts, res, e))
   }
   const staticAvatar = (req, res, next) => Promise.resolve({ req, res, app })
-    .then(getSizeAndPath)
-    .then(setContext('webPath', context => context.path))
-    .then(context => {
-      if (context.path.split('.').pop().toLowerCase() === 'gif' && context.size) {
-        const dest = [context.app.path(), context.req.route.path.split('/').slice(1, 2).pop()]
-        dest.push(context.req.params['0'])
-        throw new ExpressRedirectError(dest.join('/'), 301)
-      }
-      return context
-    })
-    .then(setContext('filePath', (context) => `${context.baseDir}/${context.path}`))
-    .then(setContext('maxage', () => (now) => day * 365))
-    .then(sendResponse)
+    .then(sendStatic)
     .catch(e => handleError(serverOpts, res, e))
 
   const app = express()
@@ -97,10 +105,6 @@ module.exports = serverOpts => {
   const sequenceChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / hour) % choices.length], now => hour - now % hour)
   const dailyChooser = avatarWithChooser((choices) => choices[Math.floor(Date.now() / day) % choices.length], now => day - now % day)
   const error404 = (req, res) => handleError(serverOpts, res, new ExpressRedirectError('Nobody here but is chickens.', 404))
-  const redirectListing = (req, res) => {
-    let newPath = `/listing/size-${req.params.size || 300}/${req.params[0]}`
-    res.redirect(302, newPath)
-  }
   app.get(['/', '/random', '/random/size-:size', '/random/size-', 'sequence', '/sequence/size-:size', '/sequence/size-', '/daily', '/daily/size-:size', '/daily/size-', '/static', '/static/size-:size', '/static/size-'], error404)
   app.get(['/random/size-:size/*', '/random/*'], randomChooser)
   app.get(['/sequence/size-:size/*', '/sequence/*'], sequenceChooser)
