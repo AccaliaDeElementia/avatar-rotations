@@ -21,25 +21,25 @@ $(function () {
   $('.btn-update-sizes').click(updateLinks)
   updateLinks()
 
-  $('.trigger-page-jumper').click(function (){
+  $('.trigger-page-jumper').click(function () {
     $('input[name=page]').val($('.pagination .page-item.active').first().text())
-    var first = parseInt($('.pagination .page-item').first().text(), 10)
-    var last = parseInt($('.pagination .page-item').last().text(), 10)
-    $('input[name=page]').attr('min', first).attr('max', last)
-    $('.jump-to-page').modal('show')
-    setTimeout(function() {
-      $('input[name=page]').focus()
-    },50)
-    return false
-  })
-
-  function validateJumper(){
-    var jumper = $('input[name=page]')
     var first = parseInt($('.pagination .page-item').first().text(), 10)
     var current = parseInt($('.pagination .page-item.active').first().text(), 10)
     var last = parseInt($('.pagination .page-item').last().text(), 10)
+    $('input[name=page]').attr('min', first).attr('max', last).val(current)
+    $('.jump-to-page').modal('show')
+    setTimeout(function () {
+      $('input[name=page]').focus()
+    }, 50)
+    return false
+  })
+
+  function validateJumper () {
+    var jumper = $('input[name=page]')
+    var first = parseInt($('.pagination .page-item').first().text(), 10)
+    var last = parseInt($('.pagination .page-item').last().text(), 10)
     var page = parseInt(jumper.val(), 10)
-    if (page < first || page > last){
+    if (page < first || page > last) {
       jumper.addClass('invalid')
       jumper.closest('.modal-body').addClass('invalid')
       return false
